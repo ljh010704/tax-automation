@@ -54,14 +54,13 @@ class ResponsiveFont:
 
     def __init__(self, root):
         self.root = root
-        self._fonts = {}       # name -> CTkFont
-        self._widgets = {}     # name -> [(widget, font_type)]
+        self._fonts = {}
         self._scale = 1.0
         self._base_sizes = dict(BASE_FONT_SIZES)
         self._create_fonts()
 
     def _create_fonts(self):
-        """创建 CTkFont 对象（不指定 size，稍后设置）"""
+        """创建 CTkFont 对象"""
         self._fonts["h1"] = ctk.CTkFont(family="Microsoft YaHei UI", weight="bold")
         self._fonts["h2"] = ctk.CTkFont(family="Microsoft YaHei UI", weight="bold")
         self._fonts["body"] = ctk.CTkFont(family="Microsoft YaHei UI")
@@ -82,8 +81,11 @@ class ResponsiveFont:
         # 只响应根窗口的大小变化
         if event.widget != self.root:
             return
-        new_scale = max(0.7, min(1.5, event.width / BASE_WIDTH))
-        if abs(new_scale - self._scale) < 0.03:
+        width = event.width
+        if width <= 1:
+            return
+        new_scale = max(0.7, min(1.5, width / BASE_WIDTH))
+        if abs(new_scale - self._scale) < 0.02:
             return  # 忽略微小变化
         self._scale = new_scale
         self._update_fonts()
@@ -96,7 +98,7 @@ class ResponsiveFont:
             font.configure(size=new_size)
 
 
-# ===== 兼容旧代码的全局字体变量（启动时由 ResponsiveFont 填充） =====
+# ===== 兼容旧代码的全局字体变量 =====
 FONT_H1 = ("Microsoft YaHei UI", 18, "bold")
 FONT_H2 = ("Microsoft YaHei UI", 14, "bold")
 FONT_BODY = ("Microsoft YaHei UI", 11)
