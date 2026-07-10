@@ -35,7 +35,7 @@ class MainWindow:
         self.root.minsize(800, 500)
 
         # 响应式字体管理器
-        self.fonts = ResponsiveFont(self.root)
+        self.fonts = ResponsiveFont()
 
         self.dm = DataManager()
         self.calc = TaxCalculator()
@@ -43,7 +43,7 @@ class MainWindow:
 
         self._id_map = {}
         self._create_layout()
-        self.fonts.bind_resize()
+        # fonts initialized
 
     def _create_layout(self):
         """创建主布局：左侧边栏 + 右侧内容"""

@@ -26,8 +26,8 @@ class TaxCalculatorWindow:
         self.window.grab_set()
 
         # 响应式字体
-        self.fonts = ResponsiveFont(self.window)
-        self.fonts.bind_resize()
+        self.fonts = ResponsiveFont()
+        # fonts initialized
 
         # Notebook
         self.notebook = ctk.CTkTabview(self.window, corner_radius=CORNER_RADIUS)

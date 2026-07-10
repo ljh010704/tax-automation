@@ -27,8 +27,8 @@ class EntityManagerWindow:
         self.window.grab_set()
 
         # 响应式字体
-        self.fonts = ResponsiveFont(self.window)
-        self.fonts.bind_resize()
+        self.fonts = ResponsiveFont()
+        # fonts initialized
 
         self._create_widgets()
         self._refresh_list()
@@ -85,8 +85,8 @@ class EntityManagerWindow:
         dialog.geometry("480x420")
         dialog.grab_set()
 
-        dialog_fonts = ResponsiveFont(dialog)
-        dialog_fonts.bind_resize()
+        dialog_fonts = ResponsiveFont()
+        # dialog fonts initialized
 
         form_frame = ctk.CTkScrollableFrame(dialog, fg_color=COLORS["bg"][0])
         form_frame.pack(fill="both", expand=True, padx=PAD_LG, pady=PAD_LG)

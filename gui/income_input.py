@@ -27,8 +27,8 @@ class IncomeInputWindow:
         self.window.grab_set()
 
         # 响应式字体
-        self.fonts = ResponsiveFont(self.window)
-        self.fonts.bind_resize()
+        self.fonts = ResponsiveFont()
+        # fonts initialized
 
         self._create_widgets()
         self._load_entities()

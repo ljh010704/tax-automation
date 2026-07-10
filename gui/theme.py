@@ -24,15 +24,14 @@ COLORS = {
     "sidebar_text": ["#FFFFFF", "#FFFFFF"],
 }
 
-# ===== 基础字体大小（参考窗口宽度 1020px） =====
-BASE_WIDTH = 1020
-BASE_FONT_SIZES = {
-    "h1": 18,
-    "h2": 14,
-    "body": 11,
-    "small": 9,
-    "mono": 10,
-    "button": 11,
+# ===== 字体大小 =====
+FONT_SIZES = {
+    "h1": 20,
+    "h2": 16,
+    "body": 14,
+    "small": 11,
+    "mono": 12,
+    "button": 14,
 }
 
 # ===== 间距 =====
@@ -50,63 +49,37 @@ SIDEBAR_WIDTH = 200
 
 
 class ResponsiveFont:
-    """响应式字体管理器 - 根据窗口大小自动缩放字体"""
+    """字体管理器 - 提供统一字体对象"""
 
-    def __init__(self, root):
-        self.root = root
+    def __init__(self, root=None):
         self._fonts = {}
-        self._scale = 1.0
-        self._base_sizes = dict(BASE_FONT_SIZES)
-        self._last_scale = -1
         self._create_fonts()
-        self._update_fonts()
 
     def _create_fonts(self):
         """创建 CTkFont 对象"""
-        self._fonts["h1"] = ctk.CTkFont(family="Microsoft YaHei UI", weight="bold")
-        self._fonts["h2"] = ctk.CTkFont(family="Microsoft YaHei UI", weight="bold")
-        self._fonts["body"] = ctk.CTkFont(family="Microsoft YaHei UI")
-        self._fonts["small"] = ctk.CTkFont(family="Microsoft YaHei UI")
-        self._fonts["mono"] = ctk.CTkFont(family="Consolas")
-        self._fonts["button"] = ctk.CTkFont(family="Microsoft YaHei UI", weight="bold")
+        self._fonts["h1"] = ctk.CTkFont(family="Microsoft YaHei UI", size=FONT_SIZES["h1"], weight="bold")
+        self._fonts["h2"] = ctk.CTkFont(family="Microsoft YaHei UI", size=FONT_SIZES["h2"], weight="bold")
+        self._fonts["body"] = ctk.CTkFont(family="Microsoft YaHei UI", size=FONT_SIZES["body"])
+        self._fonts["small"] = ctk.CTkFont(family="Microsoft YaHei UI", size=FONT_SIZES["small"])
+        self._fonts["mono"] = ctk.CTkFont(family="Consolas", size=FONT_SIZES["mono"])
+        self._fonts["button"] = ctk.CTkFont(family="Microsoft YaHei UI", size=FONT_SIZES["button"], weight="bold")
 
     def get(self, name):
         """获取字体对象"""
         return self._fonts[name]
 
     def bind_resize(self):
-        """绑定窗口大小变化事件"""
-        self.root.bind("<Configure>", self._on_resize, add="+")
-
-    def _on_resize(self, event):
-        """窗口大小变化时更新字体"""
-        if event.widget is not self.root:
-            return
-        width = event.width
-        if width <= 1:
-            return
-        new_scale = max(0.7, min(1.5, width / BASE_WIDTH))
-        if abs(new_scale - self._last_scale) < 0.02:
-            return
-        self._last_scale = new_scale
-        self._scale = new_scale
-        self._update_fonts()
-
-    def _update_fonts(self):
-        """更新所有字体大小"""
-        for name, font in self._fonts.items():
-            base_size = self._base_sizes.get(name, 11)
-            new_size = max(8, int(base_size * self._scale))
-            font.configure(size=new_size)
+        """兼容接口 - 不再绑定resize（使用固定字体）"""
+        pass
 
 
 # ===== 兼容旧代码的全局字体变量 =====
-FONT_H1 = ("Microsoft YaHei UI", 18, "bold")
-FONT_H2 = ("Microsoft YaHei UI", 14, "bold")
-FONT_BODY = ("Microsoft YaHei UI", 11)
-FONT_SMALL = ("Microsoft YaHei UI", 9)
-FONT_MONO = ("Consolas", 10)
-FONT_BUTTON = ("Microsoft YaHei UI", 11, "bold")
+FONT_H1 = ("Microsoft YaHei UI", 20, "bold")
+FONT_H2 = ("Microsoft YaHei UI", 16, "bold")
+FONT_BODY = ("Microsoft YaHei UI", 14)
+FONT_SMALL = ("Microsoft YaHei UI", 11)
+FONT_MONO = ("Consolas", 12)
+FONT_BUTTON = ("Microsoft YaHei UI", 14, "bold")
 
 
 class Theme:
