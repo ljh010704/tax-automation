@@ -20,3 +20,5 @@ check_db.py
 test_inspect_detail.py
 test_query.py
 test_run2.py
+
+git_push.bat

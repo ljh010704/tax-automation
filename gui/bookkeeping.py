@@ -1,29 +1,17 @@
-﻿"""记账窗口"""
+"""
+记账窗口 - customtkinter UI
+"""
 
-import tkinter as tk
-from tkinter import ttk, messagebox
-from datetime import datetime, date
-from core.tax_calculator import TaxCalculator, format_currency
+import sys
+import os
+from datetime import datetime
+from tkinter import messagebox
 
+import customtkinter as ctk
 
-INCOME_CATEGORIES = [
-    "销售收入",
-    "服务收入",
-    "其他收入",
-]
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-EXPENSE_CATEGORIES = [
-    "进货成本",
-    "房租",
-    "水电费",
-    "快递费",
-    "包装材料",
-    "平台扣点",
-    "员工工资",
-    "办公用品",
-    "维修费",
-    "其他支出",
-]
+from gui.theme import *
 
 
 class BookkeepingWindow:
@@ -31,292 +19,144 @@ class BookkeepingWindow:
 
     def __init__(self, parent, data_manager, refresh_callback=None):
         self.dm = data_manager
-        self.calc = TaxCalculator()
         self.refresh_callback = refresh_callback
         self.current_entity_id = None
+        self._id_map = {}
 
-        self.window = tk.Toplevel(parent)
+        self.window = ctk.CTkToplevel(parent)
         self.window.title("记账")
-        self.window.geometry("900x600")
-        self.window.minsize(800, 500)
-        self.window.transient(parent)
+        self.window.geometry("750x600")
         self.window.grab_set()
 
         self._create_widgets()
         self._load_entities()
 
     def _create_widgets(self):
-        """创建界面组件"""
-        main_frame = ttk.Frame(self.window, padding=10)
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        main_frame = ctk.CTkFrame(self.window, fg_color="transparent")
+        main_frame.pack(fill="both", expand=True, padx=PAD_LG, pady=PAD_LG)
+        main_frame.grid_columnconfigure(0, weight=1)
+        main_frame.grid_rowconfigure(2, weight=1)
 
-        top_frame = ttk.Frame(main_frame)
-        top_frame.pack(fill=tk.X, pady=(0, 10))
+        # 顶部选择
+        top_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        top_frame.grid(row=0, column=0, sticky="ew", pady=(0, PAD_MD))
 
-        ttk.Label(top_frame, text="经营主体:").pack(side=tk.LEFT, padx=(0, 5))
-        self.entity_var = tk.StringVar()
-        self.entity_combo = ttk.Combobox(top_frame, textvariable=self.entity_var, width=25, state="readonly")
-        self.entity_combo.pack(side=tk.LEFT, padx=(0, 20))
-        self.entity_combo.bind("<<ComboboxSelected>>", self._on_entity_change)
+        ctk.CTkLabel(top_frame, text="经营主体:", font=FONT_BODY).pack(side="left", padx=(0, PAD_SM))
+        self.entity_var = ctk.StringVar()
+        self.entity_combo = ctk.CTkComboBox(top_frame, variable=self.entity_var, width=200,
+                                              command=self._on_entity_change)
+        self.entity_combo.pack(side="left", padx=(0, PAD_LG))
 
-        ttk.Label(top_frame, text="年份:").pack(side=tk.LEFT, padx=(0, 5))
-        self.year_var = tk.StringVar(value=str(datetime.now().year))
-        year_combo = ttk.Combobox(top_frame, textvariable=self.year_var, width=8, state="readonly")
-        year_combo["values"] = [str(y) for y in range(2020, 2030)]
-        year_combo.pack(side=tk.LEFT, padx=(0, 20))
-        year_combo.bind("<<ComboboxSelected>>", self._on_filter_change)
+        ctk.CTkLabel(top_frame, text="年份:", font=FONT_BODY).pack(side="left", padx=(0, PAD_SM))
+        self.year_var = ctk.StringVar(value=str(datetime.now().year))
+        years = [str(y) for y in range(datetime.now().year, datetime.now().year - 3, -1)]
+        ctk.CTkComboBox(top_frame, variable=self.year_var, values=years, width=80).pack(side="left", padx=(0, PAD_SM))
 
-        ttk.Label(top_frame, text="月份:").pack(side=tk.LEFT, padx=(0, 5))
-        self.month_var = tk.StringVar(value="全部")
-        month_values = ["全部"] + [str(m) for m in range(1, 13)]
-        month_combo = ttk.Combobox(top_frame, textvariable=self.month_var, width=8, values=month_values, state="readonly")
-        month_combo.pack(side=tk.LEFT)
-        month_combo.bind("<<ComboboxSelected>>", self._on_filter_change)
+        ctk.CTkLabel(top_frame, text="月份:", font=FONT_BODY).pack(side="left", padx=(0, PAD_SM))
+        self.month_var = ctk.StringVar(value="全部")
+        months = ["全部"] + [str(m) for m in range(1, 13)]
+        ctk.CTkComboBox(top_frame, variable=self.month_var, values=months, width=70).pack(side="left")
 
-        mid_frame = ttk.Frame(main_frame)
-        mid_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+        ctk.CTkButton(top_frame, text="刷新", width=60, height=30, corner_radius=CORNER_RADIUS,
+                       command=self._refresh_list).pack(side="left", padx=PAD_MD)
 
-        left_frame = ttk.LabelFrame(mid_frame, text="添加记录", padding=10)
-        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
+        # 添加记录
+        add_frame = ctk.CTkFrame(main_frame, fg_color=COLORS["card"][0], corner_radius=CORNER_RADIUS, border_width=1, border_color=COLORS["border"][0])
+        add_frame.grid(row=1, column=0, sticky="ew", pady=(0, PAD_MD))
 
-        ttk.Label(left_frame, text="日期:").grid(row=0, column=0, sticky=tk.W, pady=5)
-        self.date_var = tk.StringVar(value=date.today().strftime("%Y-%m-%d"))
-        ttk.Entry(left_frame, textvariable=self.date_var, width=15).grid(row=0, column=1, pady=5, sticky=tk.W)
+        self.trans_date_var = ctk.StringVar(value=datetime.now().strftime("%Y-%m-%d"))
+        self.trans_type_var = ctk.StringVar(value="income")
+        self.category_var = ctk.StringVar(value="营业收入")
+        self.amount_var = ctk.StringVar()
+        self.desc_var = ctk.StringVar()
 
-        ttk.Label(left_frame, text="类型:").grid(row=1, column=0, sticky=tk.W, pady=5)
-        self.type_var = tk.StringVar(value="income")
-        type_frame = ttk.Frame(left_frame)
-        type_frame.grid(row=1, column=1, sticky=tk.W, pady=5)
-        ttk.Radiobutton(type_frame, text="收入", variable=self.type_var, value="income", command=self._on_type_change).pack(side=tk.LEFT)
-        ttk.Radiobutton(type_frame, text="支出", variable=self.type_var, value="expense", command=self._on_type_change).pack(side=tk.LEFT, padx=(10, 0))
+        row1 = ctk.CTkFrame(add_frame, fg_color="transparent")
+        row1.pack(fill="x", padx=PAD_MD, pady=PAD_MD)
+        ctk.CTkLabel(row1, text="日期:", font=FONT_SMALL).pack(side="left")
+        ctk.CTkEntry(row1, textvariable=self.trans_date_var, width=100, height=32, corner_radius=6).pack(side="left", padx=PAD_XS)
+        ctk.CTkLabel(row1, text="类型:", font=FONT_SMALL).pack(side="left", padx=(PAD_MD, 0))
+        ctk.CTkComboBox(row1, variable=self.trans_type_var, width=80, height=32,
+                        values=["income", "expense"], corner_radius=6).pack(side="left", padx=PAD_XS)
+        ctk.CTkLabel(row1, text="分类:", font=FONT_SMALL).pack(side="left", padx=(PAD_MD, 0))
+        ctk.CTkEntry(row1, textvariable=self.category_var, width=100, height=32, corner_radius=6).pack(side="left", padx=PAD_XS)
+        ctk.CTkLabel(row1, text="金额:", font=FONT_SMALL).pack(side="left", padx=(PAD_MD, 0))
+        ctk.CTkEntry(row1, textvariable=self.amount_var, width=90, height=32, corner_radius=6).pack(side="left", padx=PAD_XS)
+        ctk.CTkLabel(row1, text="备注:", font=FONT_SMALL).pack(side="left", padx=(PAD_MD, 0))
+        ctk.CTkEntry(row1, textvariable=self.desc_var, width=100, height=32, corner_radius=6).pack(side="left", padx=PAD_XS)
 
-        ttk.Label(left_frame, text="分类:").grid(row=2, column=0, sticky=tk.W, pady=5)
-        self.category_var = tk.StringVar(value="销售收入")
-        self.category_combo = ttk.Combobox(left_frame, textvariable=self.category_var, width=18, state="readonly")
-        self.category_combo["values"] = INCOME_CATEGORIES
-        self.category_combo.grid(row=2, column=1, sticky=tk.W, pady=5)
+        ctk.CTkButton(add_frame, text="+ 添加记录", width=100, height=32,
+                       corner_radius=CORNER_RADIUS, font=FONT_SMALL,
+                       fg_color=COLORS["primary"][0], command=self._add_record).pack(anchor="e", padx=PAD_MD, pady=(0, PAD_MD))
 
-        ttk.Label(left_frame, text="金额(元):").grid(row=3, column=0, sticky=tk.W, pady=5)
-        self.amount_var = tk.StringVar()
-        ttk.Entry(left_frame, textvariable=self.amount_var, width=15).grid(row=3, column=1, sticky=tk.W, pady=5)
+        # 记录列表
+        self.list_frame = ctk.CTkScrollableFrame(main_frame, fg_color=COLORS["card"][0],
+                                                  corner_radius=CORNER_RADIUS, border_width=1, border_color=COLORS["border"][0])
+        self.list_frame.grid(row=2, column=0, sticky="nsew", pady=(0, PAD_MD))
+        self.list_frame.grid_columnconfigure(1, weight=1)
 
-        ttk.Label(left_frame, text="备注:").grid(row=4, column=0, sticky=tk.W, pady=5)
-        self.desc_var = tk.StringVar()
-        ttk.Entry(left_frame, textvariable=self.desc_var, width=30).grid(row=4, column=1, sticky=tk.W, pady=5)
-
-        ttk.Button(left_frame, text="添加记录", command=self._add_transaction).grid(row=5, column=1, pady=15, sticky=tk.W)
-
-        right_frame = ttk.LabelFrame(mid_frame, text="季度汇总（自动算税）", padding=10)
-        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
-
-        self.summary_text = tk.Text(right_frame, height=15, state=tk.DISABLED, font=("Consolas", 9))
-        self.summary_text.pack(fill=tk.BOTH, expand=True)
-
-        bottom_frame = ttk.LabelFrame(main_frame, text="记账记录", padding=10)
-        bottom_frame.pack(fill=tk.BOTH, expand=True)
-
-        btn_frame = ttk.Frame(bottom_frame)
-        btn_frame.pack(fill=tk.X, pady=(0, 5))
-        ttk.Button(btn_frame, text="删除选中记录", command=self._delete_selected).pack(side=tk.LEFT)
-        ttk.Button(btn_frame, text="刷新", command=self._refresh_list).pack(side=tk.LEFT, padx=10)
-
-        columns = ("id", "date", "type", "category", "amount", "description")
-        self.tree = ttk.Treeview(bottom_frame, columns=columns, show="headings", height=8)
-
-        self.tree.heading("id", text="序号")
-        self.tree.heading("date", text="日期")
-        self.tree.heading("type", text="类型")
-        self.tree.heading("category", text="分类")
-        self.tree.heading("amount", text="金额")
-        self.tree.heading("description", text="备注")
-
-        self.tree.column("id", width=40)
-        self.tree.column("date", width=100)
-        self.tree.column("type", width=60)
-        self.tree.column("category", width=100)
-        self.tree.column("amount", width=100)
-        self.tree.column("description", width=150)
-
-        scrollbar = ttk.Scrollbar(bottom_frame, orient=tk.VERTICAL, command=self.tree.yview)
-        self.tree.configure(yscrollcommand=scrollbar.set)
-
-        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        # 底部汇总
+        self.summary_text = ctk.CTkTextbox(main_frame, height=60, font=FONT_SMALL, corner_radius=CORNER_RADIUS)
+        self.summary_text.grid(row=3, column=0, sticky="ew")
 
     def _load_entities(self):
-        """加载经营主体"""
         entities = self.dm.get_entities()
-        if not entities:
-            messagebox.showwarning("提示", "请先添加经营主体")
-            return
-
-        entity_names = [e["name"] for e in entities]
-        self.entity_combo["values"] = entity_names
-        self.entities = {e["name"]: e for e in entities}
-        self.entity_combo.current(0)
-        self._on_entity_change()
-
-    def _on_entity_change(self, event=None):
-        """主体切换"""
-        entity_name = self.entity_var.get()
-        if entity_name and entity_name in self.entities:
-            self.current_entity_id = self.entities[entity_name]["id"]
+        if entities:
+            self.entity_map = {e["name"]: e["id"] for e in entities}
+            self.entity_combo.configure(values=list(self.entity_map.keys()))
+            first = list(self.entity_map.keys())[0]
+            self.entity_var.set(first)
+            self.current_entity_id = self.entity_map[first]
             self._refresh_list()
-            self._update_summary()
 
-    def _on_type_change(self):
-        """收支类型切换"""
-        if self.type_var.get() == "income":
-            self.category_combo["values"] = INCOME_CATEGORIES
-            self.category_var.set("销售收入")
-        else:
-            self.category_combo["values"] = EXPENSE_CATEGORIES
-            self.category_var.set("进货成本")
-
-    def _on_filter_change(self, event=None):
-        """筛选条件变化"""
+    def _on_entity_change(self, choice):
+        self.current_entity_id = self.entity_map.get(choice)
         self._refresh_list()
-        self._update_summary()
-
-    def _add_transaction(self):
-        """添加记账记录"""
-        if not self.current_entity_id:
-            messagebox.showwarning("提示", "请先选择经营主体")
-            return
-
-        trans_date = self.date_var.get().strip()
-        try:
-            datetime.strptime(trans_date, "%Y-%m-%d")
-        except ValueError:
-            messagebox.showwarning("提示", "日期格式错误，请使用 YYYY-MM-DD 格式")
-            return
-
-        amount_str = self.amount_var.get().strip()
-        try:
-            amount = float(amount_str)
-            if amount <= 0:
-                raise ValueError
-        except ValueError:
-            messagebox.showwarning("提示", "请输入有效的金额（大于0）")
-            return
-
-        trans_type = self.type_var.get()
-        category = self.category_var.get()
-        description = self.desc_var.get().strip()
-
-        self.dm.add_transaction(self.current_entity_id, trans_date, trans_type, category, amount, description)
-
-        self.amount_var.set("")
-        self.desc_var.set("")
-
-        self._refresh_list()
-        self._update_summary()
-
-        type_text = "收入" if trans_type == "income" else "支出"
-        messagebox.showinfo("成功", f"已添加{type_text}记录: {category} ¥{amount:,.2f}")
 
     def _refresh_list(self):
-        """刷新记录列表"""
-        for item in self.tree.get_children():
-            self.tree.delete(item)
-
+        for w in self.list_frame.winfo_children():
+            w.destroy()
+        self._id_map = {}
         if not self.current_entity_id:
             return
 
         year_str = self.year_var.get()
         month_str = self.month_var.get()
-
         year = int(year_str) if year_str else None
-        month = int(month_str) if month_str and month_str != "全部" else None
+        month = int(month_str) if month_str != "全部" else None
 
         records = self.dm.get_transactions(self.current_entity_id, year, month)
-
-        self._trans_id_map = {}
         for idx, r in enumerate(records, start=1):
+            row = ctk.CTkFrame(self.list_frame, fg_color="transparent")
+            row.pack(fill="x", pady=1, padx=PAD_XS)
+            row.grid_columnconfigure(2, weight=1)
+            ctk.CTkLabel(row, text=str(idx), font=FONT_SMALL, width=35, text_color=COLORS["text_light"][0]).grid(row=0, column=0)
+            ctk.CTkLabel(row, text=r["trans_date"], font=FONT_SMALL, width=80).grid(row=0, column=1, padx=PAD_XS)
             type_text = "收入" if r["trans_type"] == "income" else "支出"
-            item_id = self.tree.insert(
-                "",
-                tk.END,
-                values=(
-                    idx,
-                    r["trans_date"],
-                    type_text,
-                    r["category"],
-                    f"¥{r['amount']:,.2f}",
-                    r.get("description", ""),
-                ),
-            )
-            self._trans_id_map[item_id] = r["id"]
+            ctk.CTkLabel(row, text=type_text, font=FONT_SMALL, width=40).grid(row=0, column=2, padx=PAD_XS)
+            ctk.CTkLabel(row, text=r["category"], font=FONT_SMALL, width=80).grid(row=0, column=3, padx=PAD_XS)
+            ctk.CTkLabel(row, text="¥" + f"{r['amount']:,.2f}", font=FONT_SMALL, width=80, anchor="e").grid(row=0, column=4, padx=PAD_XS)
+            self._id_map[str(idx)] = r["id"]
 
-    def _update_summary(self):
-        """更新汇总统计（含自动算税）"""
-        self.summary_text.config(state=tk.NORMAL)
-        self.summary_text.delete(1.0, tk.END)
-
+    def _add_record(self):
         if not self.current_entity_id:
-            self.summary_text.insert(tk.END, "请先选择经营主体")
-            self.summary_text.config(state=tk.DISABLED)
+            messagebox.showwarning("提示", "请先选择经营主体")
+            return
+        try:
+            amount = float(self.amount_var.get())
+        except ValueError:
+            messagebox.showwarning("提示", "请输入合法金额")
             return
 
-        year_str = self.year_var.get()
-        year = int(year_str) if year_str else datetime.now().year
-
-        entity = self.dm.get_entity(self.current_entity_id)
-        is_small_scale = entity.get("taxpayer_type", "small_scale") == "small_scale"
-
-        self.summary_text.insert(tk.END, f"  {year}年度汇总（自动算税）\n")
-        self.summary_text.insert(tk.END, "=" * 45 + "\n\n")
-
-        total_income = 0
-        total_expense = 0
-        total_tax = 0
-
-        for q in range(1, 5):
-            summary = self.dm.get_quarterly_summary(self.current_entity_id, year, q)
-            total_income += summary["income"]
-            total_expense += summary["expense"]
-
-            if summary["income"] > 0 or summary["expense"] > 0:
-                tax_result = self.calc.calculate_all_quarterly(summary["income"], summary["expense"])
-                total_tax += tax_result["total_quarterly_tax"]
-
-                self.summary_text.insert(tk.END, f"  第{q}季度:\n")
-                self.summary_text.insert(tk.END, f"    收入: ¥{summary['income']:>12,.2f}\n")
-                self.summary_text.insert(tk.END, f"    支出: ¥{summary['expense']:>12,.2f}\n")
-                self.summary_text.insert(tk.END, f"    净利: ¥{summary['profit']:>12,.2f}\n")
-                self.summary_text.insert(tk.END, f"    ——— 应缴税费 ———\n")
-
-                vat = tax_result["vat"]
-                if vat["is_exempt"]:
-                    self.summary_text.insert(tk.END, "    增值税: 免征\n")
-                else:
-                    self.summary_text.insert(tk.END, f"    增值税: ¥{vat['vat']:>10,.2f}\n")
-
-                self.summary_text.insert(tk.END, f"    附加税: ¥{tax_result['surtax']['total']:>10,.2f}\n")
-                self.summary_text.insert(tk.END, f"    个税:   ¥{tax_result['iit']['quarterly_tax']:>10,.2f}\n")
-                self.summary_text.insert(tk.END, f"    小计:   ¥{tax_result['total_quarterly_tax']:>10,.2f}\n\n")
-
-        self.summary_text.insert(tk.END, "-" * 45 + "\n")
-        self.summary_text.insert(tk.END, "  全年合计:\n")
-        self.summary_text.insert(tk.END, f"    总收入: ¥{total_income:>10,.2f}\n")
-        self.summary_text.insert(tk.END, f"    总支出: ¥{total_expense:>10,.2f}\n")
-        self.summary_text.insert(tk.END, f"    净利润: ¥{total_income - total_expense:>10,.2f}\n")
-        self.summary_text.insert(tk.END, f"    ———————————————————\n")
-        self.summary_text.insert(tk.END, f"    全年应缴税费: ¥{total_tax:>10,.2f}\n")
-        self.summary_text.insert(tk.END, f"    税后净收入: ¥{total_income - total_expense - total_tax:>10,.2f}\n")
-
-        self.summary_text.config(state=tk.DISABLED)
-
-    def _delete_selected(self):
-        """删除选中记录"""
-        selected = self.tree.selection()
-        if not selected:
-            messagebox.showwarning("提示", "请先选择要删除的记录")
-            return
-
-        if messagebox.askyesno("确认", "确定要删除选中的记录吗？"):
-            for item in selected:
-                trans_id = self.tree.item(item)["values"][0]
-                self.dm.delete_transaction(trans_id)
-            self._refresh_list()
-            self._update_summary()
+        self.dm.add_transaction(
+            self.current_entity_id,
+            self.trans_date_var.get(),
+            self.trans_type_var.get(),
+            self.category_var.get(),
+            amount,
+            self.desc_var.get()
+        )
+        self.amount_var.set("")
+        self.desc_var.set("")
+        self._refresh_list()
+        if self.refresh_callback:
+            self.refresh_callback()

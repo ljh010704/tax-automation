@@ -1,14 +1,18 @@
-﻿"""税务记账助手 - 主窗口"""
+"""
+税务记账助手 - 主窗口 (customtkinter 现代 UI)
+"""
 
-import tkinter as tk
-from tkinter import ttk, messagebox
 import sys
 import os
 import threading
 from datetime import datetime
+from tkinter import messagebox
+
+import customtkinter as ctk
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from gui.theme import *
 from core.data_manager import DataManager
 from core.tax_calculator import TaxCalculator, format_currency
 from core.declaration_runner import DeclarationRunner
@@ -17,206 +21,254 @@ from gui.income_input import IncomeInputWindow
 from gui.tax_calculator_gui import TaxCalculatorWindow
 from gui.bookkeeping import BookkeepingWindow
 
+ctk.set_appearance_mode("light")
+ctk.set_default_color_theme("blue")
+
 
 class MainWindow:
-    """主窗口"""
+    """主窗口 - 现代侧边栏布局"""
 
     def __init__(self):
-        self.root = tk.Tk()
+        self.root = ctk.CTk()
         self.root.title("税务记账助手")
-        self.root.geometry("960x640")
-        self.root.minsize(860, 540)
+        self.root.geometry("1020x680")
+        self.root.minsize(900, 580)
 
         self.dm = DataManager()
         self.calc = TaxCalculator()
         self.runner = DeclarationRunner(self.dm, self.calc)
 
-        self._create_menu()
-        self._create_main_layout()
-        self._update_status_bar()
+        self._id_map = {}
+        self._create_layout()
 
-    def _create_menu(self):
-        """创建菜单栏"""
-        menubar = tk.Menu(self.root)
-        self.root.config(menu=menubar)
+    def _create_layout(self):
+        """创建主布局：左侧边栏 + 右侧内容"""
+        self.root.grid_columnconfigure(1, weight=1)
+        self.root.grid_rowconfigure(0, weight=1)
 
-        file_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="文件", menu=file_menu)
-        file_menu.add_command(label="导出数据", command=self._export_data)
-        file_menu.add_separator()
-        file_menu.add_command(label="退出", command=self.root.quit)
+        sidebar = ctk.CTkFrame(self.root, width=SIDEBAR_WIDTH, corner_radius=0, fg_color=COLORS["sidebar"][0])
+        sidebar.grid(row=0, column=0, sticky="nsew")
+        sidebar.grid_rowconfigure(4, weight=1)
 
-        manage_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="管理", menu=manage_menu)
-        manage_menu.add_command(label="经营管理主体", command=self._open_entity_manager)
-        manage_menu.add_command(label="记账", command=self._open_bookkeeping)
-        manage_menu.add_command(label="快速收入录入", command=self._open_income_input)
+        logo_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
+        logo_frame.grid(row=0, column=0, padx=PAD_LG, pady=PAD_XL, sticky="ew")
+        ctk.CTkLabel(logo_frame, text="税务记账助手", font=FONT_H1, text_color=COLORS["sidebar_text"][0]).pack(anchor="w")
+        ctk.CTkLabel(logo_frame, text="v1.0 智能报税", font=FONT_SMALL, text_color=COLORS["text_light"][0]).pack(anchor="w")
 
-        tools_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="工具", menu=tools_menu)
-        tools_menu.add_command(label="税额计算器", command=self._open_tax_calculator)
-        tools_menu.add_command(label="社保计算器", command=self._open_social_security)
+        nav_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
+        nav_frame.grid(row=1, column=0, padx=PAD_MD, pady=PAD_LG, sticky="ew")
 
-        help_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="帮助", menu=help_menu)
-        help_menu.add_command(label="使用说明", command=self._show_usage)
-        help_menu.add_command(label="关于", command=self._show_about)
+        nav_items = [
+            ("首页概览", self._refresh_all),
+            ("经营管理主体", self._open_entity_manager),
+            ("记账", self._open_bookkeeping),
+            ("快速收入录入", self._open_income_input),
+            ("税额计算器", self._open_tax_calculator),
+        ]
+        self.nav_buttons = {}
+        for text, cmd in nav_items:
+            btn = ctk.CTkButton(
+                nav_frame, text=text, font=FONT_BODY,
+                fg_color="transparent", hover_color=COLORS["primary"][1],
+                text_color=COLORS["sidebar_text"][0], anchor="w",
+                height=40, corner_radius=CORNER_RADIUS,
+                command=cmd
+            )
+            btn.pack(fill="x", pady=PAD_XS)
+            self.nav_buttons[text] = btn
 
-    def _create_main_layout(self):
-        """创建主界面布局"""
-        main_frame = ttk.Frame(self.root, padding=10)
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        tool_frame = ctk.CTkFrame(sidebar, fg_color="transparent")
+        tool_frame.grid(row=5, column=0, padx=PAD_MD, pady=PAD_LG, sticky="ew")
 
-        quick_frame = ttk.LabelFrame(main_frame, text="快速操作", padding=10)
-        quick_frame.pack(fill=tk.X, pady=(0, 10))
+        ctk.CTkButton(
+            tool_frame, text="开始申报", font=FONT_BUTTON,
+            fg_color=COLORS["success"][0], hover_color=COLORS["success_hover"][0],
+            height=BUTTON_HEIGHT, corner_radius=CORNER_RADIUS,
+            command=self._start_declaration
+        ).pack(fill="x", pady=PAD_XS)
 
-        ttk.Button(quick_frame, text="记账", command=self._open_bookkeeping).pack(side=tk.LEFT, padx=5)
-        ttk.Button(quick_frame, text="经营管理主体", command=self._open_entity_manager).pack(side=tk.LEFT, padx=5)
-        ttk.Button(quick_frame, text="快速收入录入", command=self._open_income_input).pack(side=tk.LEFT, padx=5)
-        ttk.Button(quick_frame, text="税额计算", command=self._open_tax_calculator).pack(side=tk.LEFT, padx=5)
-        ttk.Button(quick_frame, text="开始申报", command=self._start_declaration).pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(
+            tool_frame, text="使用说明", font=FONT_BODY,
+            fg_color="transparent", hover_color=COLORS["gray"][0],
+            text_color=COLORS["sidebar_text"][0], border_width=1, border_color=COLORS["gray"][0],
+            height=36, corner_radius=CORNER_RADIUS,
+            command=self._show_usage
+        ).pack(fill="x", pady=PAD_XS)
 
-        middle_frame = ttk.Frame(main_frame)
-        middle_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+        self.content = ctk.CTkScrollableFrame(self.root, fg_color=COLORS["bg"][0])
+        self.content.grid(row=0, column=1, sticky="nsew", padx=PAD_XL, pady=PAD_XL)
+        self.content.grid_columnconfigure(0, weight=1)
 
-        entity_frame = ttk.LabelFrame(middle_frame, text="经营管理主体列表", padding=10)
-        entity_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
+        self._build_home()
 
-        columns = ("id", "name", "credit_code", "entity_type", "taxpayer_type", "legal_rep", "biz_status", "province")
-        self.entity_tree = ttk.Treeview(entity_frame, columns=columns, show="headings", height=8)
+    def _build_home(self):
+        """构建首页内容"""
+        for w in self.content.winfo_children():
+            w.destroy()
 
-        self.entity_tree.heading("id", text="序号")
-        self.entity_tree.heading("name", text="名称")
-        self.entity_tree.heading("credit_code", text="统一社会信用代码")
-        self.entity_tree.heading("entity_type", text="类型")
-        self.entity_tree.heading("taxpayer_type", text="纳税人")
-        self.entity_tree.heading("legal_rep", text="法人")
-        self.entity_tree.heading("biz_status", text="状态")
-        self.entity_tree.heading("province", text="省份")
+        header = ctk.CTkFrame(self.content, fg_color="transparent")
+        header.pack(fill="x", pady=(0, PAD_LG))
+        ctk.CTkLabel(header, text="首页概览", font=FONT_H1, text_color=COLORS["text"][0]).pack(side="left")
+        date_str = datetime.now().strftime("%Y年%m月%d日")
+        ctk.CTkLabel(header, text=date_str, font=FONT_BODY, text_color=COLORS["text_light"][0]).pack(side="right")
 
-        self.entity_tree.column("id", width=35, minwidth=35)
-        self.entity_tree.column("name", width=200, minwidth=120)
-        self.entity_tree.column("credit_code", width=150, minwidth=100)
-        self.entity_tree.column("entity_type", width=70, minwidth=50)
-        self.entity_tree.column("taxpayer_type", width=80, minwidth=50)
-        self.entity_tree.column("legal_rep", width=60, minwidth=40)
-        self.entity_tree.column("biz_status", width=60, minwidth=40)
-        self.entity_tree.column("province", width=80, minwidth=50)
-
-        scrollbar = ttk.Scrollbar(entity_frame, orient=tk.VERTICAL, command=self.entity_tree.yview)
-        self.entity_tree.configure(yscrollcommand=scrollbar.set)
-        self.entity_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        right_frame = ttk.Frame(middle_frame)
-        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=False)
-
-        reminder_frame = ttk.LabelFrame(right_frame, text="申报提醒", padding=10)
-        reminder_frame.pack(fill=tk.X, pady=(0, 10))
-
-        self.reminder_text = tk.Text(reminder_frame, height=8, width=36, state=tk.DISABLED)
-        self.reminder_text.pack(fill=tk.X)
-
-        overview_frame = ttk.LabelFrame(right_frame, text="当前季度申报概览", padding=10)
-        overview_frame.pack(fill=tk.BOTH, expand=True)
-
-        self.overview_text = tk.Text(overview_frame, height=8, width=36, state=tk.DISABLED)
-        self.overview_text.pack(fill=tk.BOTH, expand=True)
-
-        self._refresh_entity_list()
-        self._update_reminder()
-        self._update_overview()
-
-    def _refresh_entity_list(self):
-        """刷新经营管理主体列表"""
-        for item in self.entity_tree.get_children():
-            self.entity_tree.delete(item)
-        self._entity_id_map = {}
-
-        taxpayer_map = {"small_scale": "小规模", "general": "一般"}
+        cards_frame = ctk.CTkFrame(self.content, fg_color="transparent")
+        cards_frame.pack(fill="x", pady=(0, PAD_LG))
+        for i in range(3):
+            cards_frame.grid_columnconfigure(i, weight=1, uniform="card")
 
         entities = self.dm.get_entities()
-        for idx, entity in enumerate(entities, start=1):
-            item_id = self.entity_tree.insert(
-                "",
-                tk.END,
-                values=(
-                    idx,
-                    entity["name"],
-                    entity.get("credit_code", ""),
-                    entity.get("entity_type", ""),
-                    taxpayer_map.get(entity.get("taxpayer_type", ""), ""),
-                    entity.get("legal_representative", ""),
-                    entity.get("business_status", "正常"),
-                    entity.get("province", ""),
-                ),
-            )
-            self._entity_id_map[item_id] = entity["id"]
+        entity_count = len(entities)
 
-    def _update_reminder(self):
+        now = datetime.now()
+        year, quarter = now.year, (now.month - 1) // 3 + 1
+        total_tax = 0
+        for e in entities:
+            try:
+                s = self.dm.get_quarterly_summary(e["id"], year, quarter)
+                if s["income"] > 0:
+                    total_tax += self.calc.calculate_all_quarterly(s["income"], s["expense"])["total_quarterly_tax"]
+            except Exception:
+                pass
+
+        card_data = [
+            ("经营主体", str(entity_count), "户", COLORS["primary"]),
+            ("本季度应缴税费", format_currency(total_tax), "", COLORS["success"]),
+            ("当前季度", "第" + str(quarter) + "季度", "", COLORS["warning"]),
+        ]
+
+        for idx, (title, value, unit, color) in enumerate(card_data):
+            card = ctk.CTkFrame(cards_frame, fg_color=COLORS["card"][0], corner_radius=CORNER_RADIUS, border_width=1, border_color=COLORS["border"][0])
+            card.grid(row=0, column=idx, padx=(0, PAD_MD if idx < 2 else 0), sticky="nsew")
+            ctk.CTkLabel(card, text=title, font=FONT_SMALL, text_color=COLORS["text_light"][0]).pack(anchor="w", padx=PAD_LG, pady=(PAD_MD, 0))
+            val_frame = ctk.CTkFrame(card, fg_color="transparent")
+            val_frame.pack(anchor="w", padx=PAD_LG, pady=(0, PAD_MD))
+            ctk.CTkLabel(val_frame, text=value, font=("Microsoft YaHei UI", 22, "bold"), text_color=color[0]).pack(side="left")
+            if unit:
+                ctk.CTkLabel(val_frame, text=unit, font=FONT_SMALL, text_color=COLORS["text_light"][0]).pack(side="left", padx=PAD_XS)
+
+        middle = ctk.CTkFrame(self.content, fg_color="transparent")
+        middle.pack(fill="both", expand=True, pady=(0, PAD_LG))
+        middle.grid_columnconfigure(0, weight=3)
+        middle.grid_columnconfigure(1, weight=2)
+        middle.grid_rowconfigure(0, weight=1)
+
+        entity_card = ctk.CTkFrame(middle, fg_color=COLORS["card"][0], corner_radius=CORNER_RADIUS, border_width=1, border_color=COLORS["border"][0])
+        entity_card.grid(row=0, column=0, sticky="nsew", padx=(0, PAD_MD))
+        entity_card.grid_columnconfigure(0, weight=1)
+        entity_card.grid_rowconfigure(1, weight=1)
+
+        hdr = ctk.CTkFrame(entity_card, fg_color="transparent")
+        hdr.grid(row=0, column=0, padx=PAD_LG, pady=PAD_MD, sticky="ew")
+        ctk.CTkLabel(hdr, text="经营主体列表", font=FONT_H2, text_color=COLORS["text"][0]).pack(side="left")
+        ctk.CTkButton(hdr, text="+ 添加", width=80, height=28, corner_radius=CORNER_RADIUS,
+                       font=FONT_SMALL, command=self._open_entity_manager).pack(side="right")
+
+        self.entity_list_frame = ctk.CTkScrollableFrame(entity_card, fg_color="transparent")
+        self.entity_list_frame.grid(row=1, column=0, padx=PAD_SM, pady=(0, PAD_MD), sticky="nsew")
+        self.entity_list_frame.grid_columnconfigure(0, weight=1)
+
+        right_panel = ctk.CTkFrame(middle, fg_color="transparent")
+        right_panel.grid(row=0, column=1, sticky="nsew")
+        right_panel.grid_columnconfigure(0, weight=1)
+
+        cal_card = ctk.CTkFrame(right_panel, fg_color=COLORS["card"][0], corner_radius=CORNER_RADIUS, border_width=1, border_color=COLORS["border"][0])
+        cal_card.pack(fill="x", pady=(0, PAD_MD))
+        ctk.CTkLabel(cal_card, text="合规日历", font=FONT_H2, text_color=COLORS["text"][0]).pack(anchor="w", padx=PAD_LG, pady=PAD_MD)
+        self.cal_text = ctk.CTkTextbox(cal_card, height=120, font=FONT_SMALL, corner_radius=CORNER_RADIUS)
+        self.cal_text.pack(fill="x", padx=PAD_MD, pady=(0, PAD_MD))
+
+        report_card = ctk.CTkFrame(right_panel, fg_color=COLORS["card"][0], corner_radius=CORNER_RADIUS, border_width=1, border_color=COLORS["border"][0])
+        report_card.pack(fill="x")
+        ctk.CTkLabel(report_card, text="年报数据（上年）", font=FONT_H2, text_color=COLORS["text"][0]).pack(anchor="w", padx=PAD_LG, pady=PAD_MD)
+        self.report_text = ctk.CTkTextbox(report_card, height=80, font=FONT_SMALL, corner_radius=CORNER_RADIUS)
+        self.report_text.pack(fill="x", padx=PAD_MD, pady=(0, PAD_MD))
+
+        self._refresh_entity_list()
+        self._update_calendar()
+        self._update_report()
+
+    def _refresh_all(self):
+        """刷新所有数据"""
+        self._build_home()
+
+    def _refresh_entity_list(self):
+        """刷新经营主体列表"""
+        if not hasattr(self, 'entity_list_frame'):
+            return
+        for w in self.entity_list_frame.winfo_children():
+            w.destroy()
+
+        self._id_map = {}
+        entities = self.dm.get_entities()
+        taxpayer_map = {"small_scale": "小规模", "general": "一般纳税人"}
+
+        for idx, entity in enumerate(entities, start=1):
+            row = ctk.CTkFrame(self.entity_list_frame, fg_color="transparent", corner_radius=CORNER_RADIUS)
+            row.pack(fill="x", pady=PAD_XS)
+            row.grid_columnconfigure(1, weight=1)
+
+            num_label = ctk.CTkLabel(row, text=str(idx), font=FONT_SMALL, width=28, height=28,
+                                     corner_radius=14, fg_color=COLORS["primary"][0], text_color="white")
+            num_label.grid(row=0, column=0, rowspan=2, padx=(0, PAD_SM))
+
+            name_frame = ctk.CTkFrame(row, fg_color="transparent")
+            name_frame.grid(row=0, column=1, sticky="w")
+            ctk.CTkLabel(name_frame, text=entity["name"], font=FONT_BODY, text_color=COLORS["text"][0]).pack(side="left")
+            status = entity.get("business_status", "正常")
+            status_color = COLORS["success"][0] if status == "正常" else COLORS["warning"][0]
+            ctk.CTkLabel(name_frame, text="  " + status, font=FONT_SMALL, text_color=status_color).pack(side="left", padx=PAD_SM)
+
+            ctk.CTkLabel(row, text=entity.get("credit_code", "") + "  " + entity.get("province", ""),
+                         font=FONT_SMALL, text_color=COLORS["text_light"][0]).grid(row=1, column=1, sticky="w")
+
+            type_label = ctk.CTkLabel(row, text=taxpayer_map.get(entity.get("taxpayer_type", "small_scale"), ""),
+                                      font=FONT_SMALL, width=70, height=22, corner_radius=6,
+                                      fg_color=COLORS["gray_light"][0], text_color=COLORS["gray"][0])
+            type_label.grid(row=0, column=2, rowspan=2, padx=PAD_SM)
+
+            self._id_map[str(idx)] = entity["id"]
+
+    def _update_calendar(self):
         """更新合规日历"""
+        if not hasattr(self, 'cal_text'):
+            return
         now = datetime.now()
         month = now.month
         quarter = (month - 1) // 3 + 1
-    
-        self.reminder_text.config(state=tk.NORMAL)
-        self.reminder_text.delete(1.0, tk.END)
-        self.reminder_text.insert(tk.END, "合规日历")
-        self.reminder_text.insert(tk.END, "\\n月度：社保/记账")
-        self.reminder_text.insert(tk.END, f"\\nQ{quarter}：增值税/附加税/个税预缴")
-        self.reminder_text.insert(tk.END, "\\n年度：个税汇算(3.31前)/工商年报(6.30前)")
-        self.reminder_text.config(state=tk.DISABLED)
+        text = "【每月】社保缴纳 / 记账\n"
+        text += "【第" + str(quarter) + "季度】增值税 / 附加税 / 个税预缴\n"
+        text += "【年度】个税汇算清缴(3.31前) / 工商年报(6.30前)"
+        self.cal_text.delete("1.0", "end")
+        self.cal_text.insert("1.0", text)
 
-    def _update_overview(self):
-        """更新申报概览"""
-        self.overview_text.config(state=tk.NORMAL)
-        self.overview_text.delete(1.0, tk.END)
-
-        entities = self.dm.get_entities()
-        if not entities:
-            self.overview_text.insert(tk.END, "暂无经营主体，请先添加经营主体。")
-            self.overview_text.config(state=tk.DISABLED)
+    def _update_report(self):
+        """更新年报数据"""
+        if not hasattr(self, 'report_text'):
             return
-
-        now = datetime.now()
-        year = now.year
-        quarter = (now.month - 1) // 3 + 1
-
-        self.overview_text.insert(tk.END, f"当前: {year}年 第{quarter}季度\n经营主体: {len(entities)}个\n")
-        self.overview_text.insert(tk.END, "—" * 28 + "\n")
-
-        total_tax = 0
-        for entity in entities:
-            summary = self.dm.get_quarterly_summary(entity["id"], year, quarter)
-            if summary["income"] > 0:
-                result = self.calc.calculate_all_quarterly(summary["income"], summary["expense"])
-                tax = result["total_quarterly_tax"]
-                total_tax += tax
-                self.overview_text.insert(tk.END, f"{entity['name'][:10]}: {format_currency(tax)}\n")
-            else:
-                self.overview_text.insert(tk.END, f"{entity['name'][:10]}: 未记账\n")
-
-        self.overview_text.insert(tk.END, "—" * 28 + "\n")
-        self.overview_text.insert(tk.END, f"本季度税费: {format_currency(total_tax)}\n")
-
-        self.overview_text.config(state=tk.DISABLED)
-
-    def _update_status_bar(self):
-        """更新状态栏"""
-        pass
-
-    def _get_selected_entity_id(self):
-        selected = self.entity_tree.selection()
-        if not selected:
-            return None
-        return self._entity_id_map.get(selected[0], self.entity_tree.item(selected[0])["values"][0])
+        year = datetime.now().year - 1
+        entities = self.dm.get_entities()
+        total_income = 0
+        for e in entities:
+            try:
+                records = self.dm.get_transactions(e["id"], year=year)
+                for r in records:
+                    if r["trans_type"] == "income":
+                        total_income += r["amount"]
+            except Exception:
+                pass
+        text = "  主体数: " + str(len(entities)) + " 户\n"
+        text += "  年度收入: " + format_currency(total_income)
+        self.report_text.delete("1.0", "end")
+        self.report_text.insert("1.0", text)
 
     def _start_declaration(self):
-        """开始申报（1.0 半自动）"""
-        entity_id = self._get_selected_entity_id()
-        if not entity_id:
-            messagebox.showwarning("提示", "请先在左侧选择一个经营主体。")
+        """开始申报"""
+        entities = self.dm.get_entities()
+        if not entities:
+            messagebox.showwarning("提示", "请先添加经营主体")
             return
+        entity_id = entities[0]["id"]
 
         now = datetime.now()
         year = now.year
@@ -225,141 +277,60 @@ class MainWindow:
         try:
             package = self.runner.build_declaration_package(entity_id, year, quarter)
         except Exception as e:
-            messagebox.showerror("申报准备失败", f"生成申报数据包失败：{e}")
+            messagebox.showerror("错误", "生成数据失败: " + str(e))
             return
 
         if not package.login_url:
-            messagebox.showwarning("提示", "该主体未配置电子税务局地址，请先在经营管理主体中补充 login_url。")
+            messagebox.showwarning("提示", "未配置电子税务局地址")
             return
 
-        confirm_text = (
-            f"即将开始 1.0 半自动申报流程：\n\n"
-            f"主体：{package.entity_name}\n"
-            f"时间：{package.year}年 第{package.quarter}季度\n"
-            f"增值税：{format_currency(package.items[0]['amount'])}\n"
-            f"附加税：{format_currency(package.items[1]['amount'])}\n"
-            f"个人所得税：{format_currency(package.items[2]['amount'])}\n\n"
-            f"程序会自动打开浏览器并填表，最后仍由你确认提交。是否继续？"
-        )
-        if not messagebox.askyesno("确认开始申报", confirm_text):
+        msg = "主体：" + package.entity_name + "\n" + str(year) + "年第" + str(quarter) + "季度\n"
+        msg += "增值税：" + format_currency(package.items[0]["amount"]) + "\n"
+        msg += "附加税：" + format_currency(package.items[1]["amount"]) + "\n"
+        msg += "个税：" + format_currency(package.items[2]["amount"])
+        if not messagebox.askyesno("确认申报", msg):
             return
-
-        messagebox.showinfo("开始申报", "即将打开浏览器并登录电子税务局，请准备好登录方式。")
 
         def run_in_thread():
             try:
                 import asyncio
                 from automation.sites.shanxi import ShanxiAdapter
                 from automation.browser import BrowserAutomation
-
                 async def _run():
                     browser = BrowserAutomation()
                     await browser.start()
                     try:
                         adapter = ShanxiAdapter(browser)
-                        result = await self.runner.run_semi_auto(package, adapter)
-                        return result
+                        return await self.runner.run_semi_auto(package, adapter)
                     finally:
                         await browser.stop()
-
                 result = asyncio.run(_run())
-                self.root.after(0, lambda: messagebox.showinfo("申报结果", f"{result.get('message', '流程结束')}"))
+                self.root.after(0, lambda: messagebox.showinfo("结果", result.get("message", "完成")))
             except Exception as e:
-                import traceback
-                traceback.print_exc()
-                self.root.after(0, lambda: messagebox.showerror("申报失败", f"申报过程出错：{e}"))
+                self.root.after(0, lambda: messagebox.showerror("错误", str(e)))
 
         threading.Thread(target=run_in_thread, daemon=True).start()
 
     def _open_entity_manager(self):
-        """打开经营管理主体窗口"""
         EntityManagerWindow(self.root, self.dm, self._refresh_entity_list)
 
     def _open_income_input(self):
-        """打开收入数据录入窗口"""
-        IncomeInputWindow(self.root, self.dm, self._update_overview)
+        IncomeInputWindow(self.root, self.dm, self._refresh_all)
 
     def _open_bookkeeping(self):
-        """打开记账窗口"""
-        BookkeepingWindow(self.root, self.dm, self._update_overview)
+        BookkeepingWindow(self.root, self.dm, self._refresh_all)
 
     def _open_tax_calculator(self):
-        """打开税额计算器"""
         TaxCalculatorWindow(self.root, self.calc)
 
-    def _open_social_security(self):
-        """打开社保计算器"""
-        from gui.tax_calculator_gui import TaxCalculatorWindow
-        win = TaxCalculatorWindow(self.root, self.calc)
-        try:
-            notebook = win.window.children.get('!notebook')
-            if notebook:
-                notebook.select(2)
-        except Exception:
-            pass
-
-    def _export_data(self):
-        """导出数据"""
-        messagebox.showinfo("提示", "导出功能暂未开放，后续版本会支持数据导出。")
-
-    def _get_annual_report_data(self):
-        """汇总年报数据（供工商年报填报参考）"""
-        year = datetime.now().year - 1  # 年报填报上年数据
-
-        entities = self.dm.get_entities()
-        total_income = 0
-        entity_count = len(entities)
-
-        for entity in entities:
-            # 获取年度收入汇总
-            try:
-                records = self.dm.get_transactions(entity["id"], year=year)
-                for r in records:
-                    if r["trans_type"] == "income":
-                        total_income += r["amount"]
-            except Exception:
-                pass
-
-        return {
-            "year": year,
-            "entity_count": entity_count,
-            "total_income": round(total_income, 2),
-        }
-
     def _show_usage(self):
-        """显示使用说明"""
-        messagebox.showinfo(
-            "使用说明",
-            "1. 先在【经营管理主体】中添加主体，并配置电子税务局地址。\n"
-            "2. 优先通过【记账】录入收入和支出。\n"
-            "3. 在左侧选中主体后，点击【开始申报】。\n"
-            "4. 程序会自动准备申报数据、打开浏览器并填表。\n"
-            "5. 最终由你确认后，再提交申报。\n",
-        )
-
-    def _show_about(self):
-        """显示关于信息"""
-        messagebox.showinfo(
-            "关于",
-            "税务记账助手 v1.0\n\n"
-            "功能：\n"
-            "- 经营主体管理\n"
-            "- 记账与收入录入\n"
-            "- 税额自动计算\n"
-            "- 企业信息查询辅助\n"
-            "- 1.0 半自动申报流程\n\n"
-            "支持税种：\n"
-            "- 增值税（小规模纳税人）\n"
-            "- 个人所得税（经营所得）\n"
-            "- 附加税\n- 印花税计算\n- 社保计算器\n- 个税年度汇算清缴\n\n"
-            "说明：当前版本支持半自动申报，程序可自动填表，最终由用户确认提交。",
-        )
+        messagebox.showinfo("使用说明",
+            "1. 添加经营主体\n2. 录入收支\n3. 点击开始申报\n4. 确认后提交")
 
     def run(self):
-        """运行主窗口"""
         self.root.mainloop()
 
 
 if __name__ == "__main__":
     app = MainWindow()
-    app.run()
+    app.run();

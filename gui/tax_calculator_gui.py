@@ -1,286 +1,245 @@
-﻿"""税额计算器窗口 - 四合一合规计算"""
+"""
+税额计算器 - customtkinter UI (Notebook 四页签)
+"""
 
-import tkinter as tk
-from tkinter import ttk, messagebox
+import sys
+from tkinter import END
+
+import customtkinter as ctk
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from gui.theme import *
 
 
 class TaxCalculatorWindow:
-    """税额计算器窗口（Notebook 四页签）"""
+    """税额计算器 - 四合一合规计算"""
 
     def __init__(self, parent, tax_calculator):
         self.calc = tax_calculator
 
-        self.window = tk.Toplevel(parent)
+        self.window = ctk.CTkToplevel(parent)
         self.window.title("税额计算器")
-        self.window.geometry("580x620")
-        self.window.transient(parent)
+        self.window.geometry("560x600")
         self.window.grab_set()
 
-        self._create_widgets()
+        # Notebook
+        self.notebook = ctk.CTkTabview(self.window, corner_radius=CORNER_RADIUS)
+        self.notebook.pack(fill="both", expand=True, padx=PAD_LG, pady=PAD_LG)
 
-    def _create_widgets(self):
-        """创建 Notebook 界面"""
-        main_frame = ttk.Frame(self.window, padding=10)
-        main_frame.pack(fill=tk.BOTH, expand=True)
-
-        notebook = ttk.Notebook(main_frame)
-        notebook.pack(fill=tk.BOTH, expand=True)
-
-        # 四个页签
-        tab1 = ttk.Frame(notebook, padding=10)
-        tab2 = ttk.Frame(notebook, padding=10)
-        tab3 = ttk.Frame(notebook, padding=10)
-        tab4 = ttk.Frame(notebook, padding=10)
-
-        notebook.add(tab1, text="季度税费")
-        notebook.add(tab2, text="印花税")
-        notebook.add(tab3, text="社保计算")
-        notebook.add(tab4, text="年度汇算")
+        tab1 = self.notebook.add("季度税费")
+        tab2 = self.notebook.add("印花税")
+        tab3 = self.notebook.add("社保计算")
+        tab4 = self.notebook.add("年度汇算")
+        self.notebook.set("季度税费")
 
         self._create_quarterly_tab(tab1)
         self._create_stamp_tab(tab2)
-        self._create_social_security_tab(tab3)
+        self._create_social_tab(tab3)
         self._create_annual_tab(tab4)
 
-    # ==================== 页签1：季度税费 ====================
     def _create_quarterly_tab(self, parent):
-        from core.tax_calculator import format_currency
+        main = ctk.CTkScrollableFrame(parent, fg_color="transparent")
+        main.pack(fill="both", expand=True, padx=PAD_MD, pady=PAD_MD)
 
-        input_frame = ttk.LabelFrame(parent, text="输入数据", padding=10)
-        input_frame.pack(fill=tk.X, pady=(0, 10))
+        inp = ctk.CTkFrame(main, fg_color=COLORS["card"][0], corner_radius=CORNER_RADIUS, border_width=1, border_color=COLORS["border"][0])
+        inp.pack(fill="x", pady=(0, PAD_MD))
 
-        ttk.Label(input_frame, text="季度收入（元）").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
-        self.q_income_var = tk.StringVar(value="100000")
-        ttk.Entry(input_frame, textvariable=self.q_income_var, width=20).grid(row=0, column=1, padx=5, pady=5)
+        self.q_income_var = ctk.StringVar(value="100000")
+        self.q_expenses_var = ctk.StringVar(value="60000")
+        self.q_taxpayer_var = ctk.StringVar(value="small_scale")
 
-        ttk.Label(input_frame, text="季度费用（元）").grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
-        self.q_expenses_var = tk.StringVar(value="60000")
-        ttk.Entry(input_frame, textvariable=self.q_expenses_var, width=20).grid(row=1, column=1, padx=5, pady=5)
+        pad = {"padx": PAD_MD, "pady": PAD_SM}
+        ctk.CTkLabel(inp, text="季度收入（元）", font=FONT_BODY).grid(row=0, column=0, sticky="w", **pad)
+        ctk.CTkEntry(inp, textvariable=self.q_income_var, width=180, height=ENTRY_HEIGHT, corner_radius=CORNER_RADIUS).grid(row=0, column=1, **pad)
 
-        ttk.Label(input_frame, text="纳税人类型").grid(row=2, column=0, sticky=tk.W, padx=5, pady=5)
-        self.q_taxpayer_var = tk.StringVar(value="small_scale")
-        ttk.Radiobutton(input_frame, text="小规模纳税人", variable=self.q_taxpayer_var, value="small_scale").grid(row=2, column=1, sticky=tk.W, padx=5)
-        ttk.Radiobutton(input_frame, text="一般纳税人", variable=self.q_taxpayer_var, value="general").grid(row=2, column=2, sticky=tk.W, padx=5)
+        ctk.CTkLabel(inp, text="季度费用（元）", font=FONT_BODY).grid(row=1, column=0, sticky="w", **pad)
+        ctk.CTkEntry(inp, textvariable=self.q_expenses_var, width=180, height=ENTRY_HEIGHT, corner_radius=CORNER_RADIUS).grid(row=1, column=1, **pad)
 
-        ttk.Button(parent, text="计算税额", command=self._calculate_quarterly).pack(pady=10)
+        ctk.CTkLabel(inp, text="纳税人类型", font=FONT_BODY).grid(row=2, column=0, sticky="w", **pad)
+        ctk.CTkComboBox(inp, variable=self.q_taxpayer_var, values=["small_scale", "general"],
+                        width=180, height=ENTRY_HEIGHT, corner_radius=CORNER_RADIUS).grid(row=2, column=1, **pad)
 
-        result_frame = ttk.LabelFrame(parent, text="计算结果", padding=10)
-        result_frame.pack(fill=tk.BOTH, expand=True)
+        ctk.CTkButton(main, text="计算税额", height=BUTTON_HEIGHT, font=FONT_BUTTON,
+                       corner_radius=CORNER_RADIUS, command=self._calc_quarterly).pack(pady=PAD_MD)
 
-        self.q_result_text = tk.Text(result_frame, height=14, state=tk.DISABLED, font=("Consolas", 9))
-        self.q_result_text.pack(fill=tk.BOTH, expand=True)
+        self.q_result = ctk.CTkTextbox(main, height=200, font=FONT_MONO, corner_radius=CORNER_RADIUS)
+        self.q_result.pack(fill="both", expand=True)
 
-    def _calculate_quarterly(self):
+    def _calc_quarterly(self):
         from core.tax_calculator import format_currency
         try:
             income = float(self.q_income_var.get())
             expenses = float(self.q_expenses_var.get())
         except ValueError:
-            messagebox.showwarning("提示", "请输入合法数字金额")
             return
 
         is_small = self.q_taxpayer_var.get() == "small_scale"
         vat = self.calc.calculate_vat(income, is_small)
         surtax = self.calc.calculate_surtax(vat["vat"])
-        annual_income = income * 4
-        annual_expenses = expenses * 4
-        iit = self.calc.calculate_iit_business_income(annual_income, annual_expenses)
-        total_tax = vat["vat"] + surtax["total"] + iit["quarterly_tax"]
+        ai = income * 4
+        ae = expenses * 4
+        iit = self.calc.calculate_iit_business_income(ai, ae)
+        total = vat["vat"] + surtax["total"] + iit["quarterly_tax"]
 
-        self.q_result_text.config(state=tk.NORMAL)
-        self.q_result_text.delete(1.0, tk.END)
-        self.q_result_text.insert(tk.END, "=" * 48 + "\n")
-        self.q_result_text.insert(tk.END, "        季度税费计算结果\n")
-        self.q_result_text.insert(tk.END, "=" * 48 + "\n\n")
-        self.q_result_text.insert(tk.END, f"  季度收入:     {format_currency(income)}\n")
-        self.q_result_text.insert(tk.END, f"  季度费用:     {format_currency(expenses)}\n")
-        self.q_result_text.insert(tk.END, "-" * 48 + "\n\n")
-        self.q_result_text.insert(tk.END, "【增值税】\n")
+        text = "=== 季度税费 ===\n\n"
+        text += "收入: " + format_currency(income) + "  费用: " + format_currency(expenses) + "\n\n"
+        text += "[增值税]\n"
         if vat["is_exempt"]:
-            self.q_result_text.insert(tk.END, f"  税额: {format_currency(0)} (免征)\n")
-            self.q_result_text.insert(tk.END, f"  说明: 季度销售额未超过30万，免征增值税\n\n")
+            text += "  免征 (季度未超30万)\n"
         else:
-            self.q_result_text.insert(tk.END, f"  税额: {format_currency(vat['vat'])} (税率: {vat['rate']*100}%)\n\n")
-        self.q_result_text.insert(tk.END, "【附加税】\n")
-        self.q_result_text.insert(tk.END, f"  城市维护建设税: {format_currency(surtax['city_maintenance'])}\n")
-        self.q_result_text.insert(tk.END, f"  教育费附加:     {format_currency(surtax['education_surcharge'])}\n")
-        self.q_result_text.insert(tk.END, f"  地方教育附加:   {format_currency(surtax['local_education_surcharge'])}\n")
-        self.q_result_text.insert(tk.END, f"  附加税合计:     {format_currency(surtax['total'])}\n\n")
-        self.q_result_text.insert(tk.END, "【个人所得税（经营所得）】\n")
-        self.q_result_text.insert(tk.END, f"  年度应纳税所得额: {format_currency(iit['taxable_income'])}\n")
-        self.q_result_text.insert(tk.END, f"  适用税率:         {iit['tax_rate']*100}%\n")
-        self.q_result_text.insert(tk.END, f"  年度应纳税额:     {format_currency(iit['annual_tax'])}\n")
-        self.q_result_text.insert(tk.END, f"  季度预缴税额:     {format_currency(iit['quarterly_tax'])}\n\n")
-        self.q_result_text.insert(tk.END, "-" * 48 + "\n")
-        self.q_result_text.insert(tk.END, f"  季度应缴税费合计: {format_currency(total_tax)}\n")
-        self.q_result_text.insert(tk.END, "=" * 48 + "\n")
-        self.q_result_text.config(state=tk.DISABLED)
+            text += "  税额: " + format_currency(vat["vat"]) + "\n"
+        text += "\n[附加税]\n"
+        text += "  城建税: " + format_currency(surtax["city_maintenance"]) + "\n"
+        text += "  教育费附加: " + format_currency(surtax["education_surcharge"]) + "\n"
+        text += "  地方教育附加: " + format_currency(surtax["local_education_surcharge"]) + "\n"
+        text += "  附加税合计: " + format_currency(surtax["total"]) + "\n"
+        text += "\n[个人所得税(经营所得)]\n"
+        text += "  应纳税所得额: " + format_currency(iit["taxable_income"]) + "\n"
+        text += "  适用税率: " + str(iit["tax_rate"]*100) + "%\n"
+        text += "  年度应纳税额: " + format_currency(iit["annual_tax"]) + "\n"
+        text += "  季度预缴: " + format_currency(iit["quarterly_tax"]) + "\n\n"
+        text += "---\n  季度税费合计: " + format_currency(total)
+        self.q_result.delete("1.0", "end")
+        self.q_result.insert("1.0", text)
 
-    # ==================== 页签2：印花税 ====================
     def _create_stamp_tab(self, parent):
-        input_frame = ttk.LabelFrame(parent, text="输入数据", padding=10)
-        input_frame.pack(fill=tk.X, pady=(0, 10))
+        main = ctk.CTkScrollableFrame(parent, fg_color="transparent")
+        main.pack(fill="both", expand=True, padx=PAD_MD, pady=PAD_MD)
 
-        ttk.Label(input_frame, text="季度收入（元）").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
-        self.s_income_var = tk.StringVar(value="100000")
-        ttk.Entry(input_frame, textvariable=self.s_income_var, width=20).grid(row=0, column=1, padx=5, pady=5)
+        inp = ctk.CTkFrame(main, fg_color=COLORS["card"][0], corner_radius=CORNER_RADIUS, border_width=1, border_color=COLORS["border"][0])
+        inp.pack(fill="x", pady=(0, PAD_MD))
 
-        ttk.Label(input_frame, text="实缴资本（元）").grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
-        self.s_capital_var = tk.StringVar(value="0")
-        ttk.Entry(input_frame, textvariable=self.s_capital_var, width=20).grid(row=1, column=1, padx=5, pady=5)
+        self.s_income_var = ctk.StringVar(value="100000")
+        self.s_capital_var = ctk.StringVar(value="0")
+        self.s_small_var = ctk.StringVar(value="yes")
 
-        ttk.Label(input_frame, text="纳税人类型").grid(row=2, column=0, sticky=tk.W, padx=5, pady=5)
-        self.s_taxpayer_var = tk.StringVar(value="small_scale")
-        ttk.Radiobutton(input_frame, text="小规模纳税人", variable=self.s_taxpayer_var, value="small_scale").grid(row=2, column=1, sticky=tk.W, padx=5)
-        ttk.Radiobutton(input_frame, text="一般纳税人", variable=self.s_taxpayer_var, value="general").grid(row=2, column=2, sticky=tk.W, padx=5)
+        pad = {"padx": PAD_MD, "pady": PAD_SM}
+        ctk.CTkLabel(inp, text="季度收入（元）", font=FONT_BODY).grid(row=0, column=0, sticky="w", **pad)
+        ctk.CTkEntry(inp, textvariable=self.s_income_var, width=180, height=ENTRY_HEIGHT, corner_radius=CORNER_RADIUS).grid(row=0, column=1, **pad)
 
-        ttk.Button(parent, text="计算印花税", command=self._calculate_stamp).pack(pady=10)
+        ctk.CTkLabel(inp, text="实缴资本（元）", font=FONT_BODY).grid(row=1, column=0, sticky="w", **pad)
+        ctk.CTkEntry(inp, textvariable=self.s_capital_var, width=180, height=ENTRY_HEIGHT, corner_radius=CORNER_RADIUS).grid(row=1, column=1, **pad)
 
-        result_frame = ttk.LabelFrame(parent, text="计算结果", padding=10)
-        result_frame.pack(fill=tk.BOTH, expand=True)
+        ctk.CTkButton(main, text="计算印花税", height=BUTTON_HEIGHT, font=FONT_BUTTON,
+                       corner_radius=CORNER_RADIUS, command=self._calc_stamp).pack(pady=PAD_MD)
 
-        self.s_result_text = tk.Text(result_frame, height=14, state=tk.DISABLED, font=("Consolas", 9))
-        self.s_result_text.pack(fill=tk.BOTH, expand=True)
+        self.s_result = ctk.CTkTextbox(main, height=200, font=FONT_MONO, corner_radius=CORNER_RADIUS)
+        self.s_result.pack(fill="both", expand=True)
 
-    def _calculate_stamp(self):
+    def _calc_stamp(self):
         from core.tax_calculator import format_currency
         try:
             income = float(self.s_income_var.get())
             capital = float(self.s_capital_var.get())
         except ValueError:
-            messagebox.showwarning("提示", "请输入合法数字金额")
             return
 
-        is_small = self.s_taxpayer_var.get() == "small_scale"
-        result = self.calc.calculate_stamp_tax(income, capital, is_small)
+        is_small = self.s_small_var.get() == "yes"
+        r = self.calc.calculate_stamp_tax(income, capital, is_small)
 
-        self.s_result_text.config(state=tk.NORMAL)
-        self.s_result_text.delete(1.0, tk.END)
-        self.s_result_text.insert(tk.END, "=" * 48 + "\n")
-        self.s_result_text.insert(tk.END, "          印花税估算\n")
-        self.s_result_text.insert(tk.END, "=" * 48 + "\n\n")
+        text = "=== 印花税估算 ===\n\n"
+        for key in ["contract", "books", "capital"]:
+            item = r[key]
+            text += "[" + item["title"] + "]\n"
+            text += "  税额: " + format_currency(item["amount"]) + " (" + item["note"] + ")\n\n"
+        text += "---\n  印花税合计: " + format_currency(r["total"])
+        self.s_result.delete("1.0", "end")
+        self.s_result.insert("1.0", text)
 
-        for item_key in ["contract", "books", "capital"]:
-            item = result[item_key]
-            self.s_result_text.insert(tk.END, f"【{item['title']}】\n")
-            if item['rate'] > 0:
-                self.s_result_text.insert(tk.END, f"  计税依据: {format_currency(income if item_key == 'contract' else capital)}\n")
-                self.s_result_text.insert(tk.END, f"  税率: {item['rate']*10000/100:.4f}‰\n")
-            self.s_result_text.insert(tk.END, f"  税额: {format_currency(item['amount'])} ({item['note']})\n\n")
+    def _create_social_tab(self, parent):
+        main = ctk.CTkScrollableFrame(parent, fg_color="transparent")
+        main.pack(fill="both", expand=True, padx=PAD_MD, pady=PAD_MD)
 
-        self.s_result_text.insert(tk.END, "-" * 48 + "\n")
-        self.s_result_text.insert(tk.END, f"  印花税合计: {format_currency(result['total'])}\n")
-        self.s_result_text.insert(tk.END, "=" * 48 + "\n")
-        self.s_result_text.config(state=tk.DISABLED)
+        inp = ctk.CTkFrame(main, fg_color=COLORS["card"][0], corner_radius=CORNER_RADIUS, border_width=1, border_color=COLORS["border"][0])
+        inp.pack(fill="x", pady=(0, PAD_MD))
 
-    # ==================== 页签3：社保计算 ====================
-    def _create_social_security_tab(self, parent):
-        input_frame = ttk.LabelFrame(parent, text="输入数据", padding=10)
-        input_frame.pack(fill=tk.X, pady=(0, 10))
+        self.ss_base_var = ctk.StringVar(value="5000")
 
-        ttk.Label(input_frame, text="月缴费基数（元）").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
-        self.ss_base_var = tk.StringVar(value="5000")
-        ttk.Entry(input_frame, textvariable=self.ss_base_var, width=20).grid(row=0, column=1, padx=5, pady=5)
+        pad = {"padx": PAD_MD, "pady": PAD_SM}
+        ctk.CTkLabel(inp, text="月缴费基数（元）", font=FONT_BODY).grid(row=0, column=0, sticky="w", **pad)
+        ctk.CTkEntry(inp, textvariable=self.ss_base_var, width=180, height=ENTRY_HEIGHT, corner_radius=CORNER_RADIUS).grid(row=0, column=1, **pad)
+        ctk.CTkLabel(inp, text="按全国平均费率计算", font=FONT_SMALL, text_color=COLORS["text_light"][0]).grid(row=1, column=0, columnspan=2, sticky="w", padx=PAD_MD)
 
-        ttk.Label(input_frame, text="说明: 按全国平均费率计算").grid(row=1, column=0, columnspan=3, sticky=tk.W, padx=5)
+        ctk.CTkButton(main, text="计算社保", height=BUTTON_HEIGHT, font=FONT_BUTTON,
+                       corner_radius=CORNER_RADIUS, command=self._calc_social).pack(pady=PAD_MD)
 
-        ttk.Button(parent, text="计算社保", command=self._calculate_ss).pack(pady=10)
+        self.ss_result = ctk.CTkTextbox(main, height=200, font=FONT_MONO, corner_radius=CORNER_RADIUS)
+        self.ss_result.pack(fill="both", expand=True)
 
-        result_frame = ttk.LabelFrame(parent, text="计算结果", padding=10)
-        result_frame.pack(fill=tk.BOTH, expand=True)
-
-        self.ss_result_text = tk.Text(result_frame, height=14, state=tk.DISABLED, font=("Consolas", 9))
-        self.ss_result_text.pack(fill=tk.BOTH, expand=True)
-
-    def _calculate_ss(self):
+    def _calc_social(self):
         from core.tax_calculator import format_currency
         try:
             base = float(self.ss_base_var.get())
         except ValueError:
-            messagebox.showwarning("提示", "请输入合法数字金额")
             return
 
-        result = self.calc.calculate_social_security(base)
+        r = self.calc.calculate_social_security(base)
 
-        self.ss_result_text.config(state=tk.NORMAL)
-        self.ss_result_text.delete(1.0, tk.END)
-        self.ss_result_text.insert(tk.END, "=" * 48 + "\n")
-        self.ss_result_text.insert(tk.END, "          社保缴费计算\n")
-        self.ss_result_text.insert(tk.END, "=" * 48 + "\n\n")
-        self.ss_result_text.insert(tk.END, f"  月缴费基数: {format_currency(result['monthly_base'])}\n\n")
+        text = "=== 社保缴费计算 ===\n\n"
+        text += "月缴费基数: " + format_currency(r["monthly_base"]) + "\n\n"
+        text += "[养老保险]\n  企业: " + format_currency(r["pension"]["employer"]) + "  个人: " + format_currency(r["pension"]["individual"]) + "\n"
+        text += "[医疗保险]\n  企业: " + format_currency(r["medical"]["employer"]) + "  个人: " + format_currency(r["medical"]["individual"]) + "\n"
+        text += "[失业保险]\n  企业: " + format_currency(r["unemployment"]["employer"]) + "  个人: " + format_currency(r["unemployment"]["individual"]) + "\n\n"
+        text += "---\n  企业承担: " + format_currency(r["employer_total"]) + "\n"
+        text += "  个人承担: " + format_currency(r["individual_total"]) + "\n"
+        text += "  当月总缴费: " + format_currency(r["grand_total"])
+        self.ss_result.delete("1.0", "end")
+        self.ss_result.insert("1.0", text)
 
-        for name, label in [("pension", "养老保险"), ("medical", "医疗保险"), ("unemployment", "失业保险")]:
-            item = result[name]
-            self.ss_result_text.insert(tk.END, f"【{label}】\n")
-            self.ss_result_text.insert(tk.END, f"  企业: {format_currency(item['employer'])}  个人: {format_currency(item['individual'])}  小计: {format_currency(item['total'])}\n\n")
-
-        self.ss_result_text.insert(tk.END, "-" * 48 + "\n")
-        self.ss_result_text.insert(tk.END, f"  企业承担合计: {format_currency(result['employer_total'])}\n")
-        self.ss_result_text.insert(tk.END, f"  个人承担合计: {format_currency(result['individual_total'])}\n")
-        self.ss_result_text.insert(tk.END, f"  当月总缴费:   {format_currency(result['grand_total'])}\n")
-        self.ss_result_text.insert(tk.END, "=" * 48 + "\n")
-        self.ss_result_text.config(state=tk.DISABLED)
-
-    # ==================== 页签4：年度汇算 ====================
     def _create_annual_tab(self, parent):
-        input_frame = ttk.LabelFrame(parent, text="输入数据", padding=10)
-        input_frame.pack(fill=tk.X, pady=(0, 10))
+        main = ctk.CTkScrollableFrame(parent, fg_color="transparent")
+        main.pack(fill="both", expand=True, padx=PAD_MD, pady=PAD_MD)
 
-        ttk.Label(input_frame, text="年度收入（元）").grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
-        self.a_income_var = tk.StringVar(value="400000")
-        ttk.Entry(input_frame, textvariable=self.a_income_var, width=20).grid(row=0, column=1, padx=5, pady=5)
+        inp = ctk.CTkFrame(main, fg_color=COLORS["card"][0], corner_radius=CORNER_RADIUS, border_width=1, border_color=COLORS["border"][0])
+        inp.pack(fill="x", pady=(0, PAD_MD))
 
-        ttk.Label(input_frame, text="年度费用（元）").grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
-        self.a_expenses_var = tk.StringVar(value="240000")
-        ttk.Entry(input_frame, textvariable=self.a_expenses_var, width=20).grid(row=1, column=1, padx=5, pady=5)
+        self.a_income_var = ctk.StringVar(value="400000")
+        self.a_expenses_var = ctk.StringVar(value="240000")
+        self.a_prepaid_var = ctk.StringVar(value="10000")
 
-        ttk.Label(input_frame, text="已预缴税额（元）").grid(row=2, column=0, sticky=tk.W, padx=5, pady=5)
-        self.a_prepaid_var = tk.StringVar(value="10000")
-        ttk.Entry(input_frame, textvariable=self.a_prepaid_var, width=20).grid(row=2, column=1, padx=5, pady=5)
+        pad = {"padx": PAD_MD, "pady": PAD_SM}
+        ctk.CTkLabel(inp, text="年度收入（元）", font=FONT_BODY).grid(row=0, column=0, sticky="w", **pad)
+        ctk.CTkEntry(inp, textvariable=self.a_income_var, width=180, height=ENTRY_HEIGHT, corner_radius=CORNER_RADIUS).grid(row=0, column=1, **pad)
 
-        ttk.Button(parent, text="计算汇算清缴", command=self._calculate_annual).pack(pady=10)
+        ctk.CTkLabel(inp, text="年度费用（元）", font=FONT_BODY).grid(row=1, column=0, sticky="w", **pad)
+        ctk.CTkEntry(inp, textvariable=self.a_expenses_var, width=180, height=ENTRY_HEIGHT, corner_radius=CORNER_RADIUS).grid(row=1, column=1, **pad)
 
-        result_frame = ttk.LabelFrame(parent, text="计算结果", padding=10)
-        result_frame.pack(fill=tk.BOTH, expand=True)
+        ctk.CTkLabel(inp, text="已预缴税额（元）", font=FONT_BODY).grid(row=2, column=0, sticky="w", **pad)
+        ctk.CTkEntry(inp, textvariable=self.a_prepaid_var, width=180, height=ENTRY_HEIGHT, corner_radius=CORNER_RADIUS).grid(row=2, column=1, **pad)
 
-        self.a_result_text = tk.Text(result_frame, height=14, state=tk.DISABLED, font=("Consolas", 9))
-        self.a_result_text.pack(fill=tk.BOTH, expand=True)
+        ctk.CTkButton(main, text="计算汇算清缴", height=BUTTON_HEIGHT, font=FONT_BUTTON,
+                       corner_radius=CORNER_RADIUS, command=self._calc_annual).pack(pady=PAD_MD)
 
-    def _calculate_annual(self):
+        self.a_result = ctk.CTkTextbox(main, height=200, font=FONT_MONO, corner_radius=CORNER_RADIUS)
+        self.a_result.pack(fill="both", expand=True)
+
+    def _calc_annual(self):
         from core.tax_calculator import format_currency
         try:
             income = float(self.a_income_var.get())
             expenses = float(self.a_expenses_var.get())
             prepaid = float(self.a_prepaid_var.get())
         except ValueError:
-            messagebox.showwarning("提示", "请输入合法数字金额")
             return
 
-        result = self.calc.calculate_iit_annual_reconciliation(income, expenses, prepaid)
+        r = self.calc.calculate_iit_annual_reconciliation(income, expenses, prepaid)
 
-        self.a_result_text.config(state=tk.NORMAL)
-        self.a_result_text.delete(1.0, tk.END)
-        self.a_result_text.insert(tk.END, "=" * 48 + "\n")
-        self.a_result_text.insert(tk.END, "    个人所得税（经营所得）年度汇算清缴\n")
-        self.a_result_text.insert(tk.END, "=" * 48 + "\n\n")
-        self.a_result_text.insert(tk.END, f"  年度收入总额:     {format_currency(result['annual_income'])}\n")
-        self.a_result_text.insert(tk.END, f"  年度成本费用:     {format_currency(result['annual_expenses'])}\n")
-        self.a_result_text.insert(tk.END, f"  应纳税所得额:     {format_currency(result['taxable_income'])}\n")
-        self.a_result_text.insert(tk.END, f"  适用税率:         {result['tax_rate']*100}%\n")
-        self.a_result_text.insert(tk.END, f"  速算扣除数:       {result['quick_deduction']}\n")
-        self.a_result_text.insert(tk.END, f"  年度应纳税额:     {format_currency(result['annual_tax'])}\n")
-        self.a_result_text.insert(tk.END, f"  已预缴税额合计:   {format_currency(result['quarterly_prepaid'])}\n\n")
-        self.a_result_text.insert(tk.END, "-" * 48 + "\n")
-
-        diff = result['difference']
+        text = "=== 个税汇算清缴 ===\n\n"
+        text += "年度收入: " + format_currency(r["annual_income"]) + "\n"
+        text += "年度费用: " + format_currency(r["annual_expenses"]) + "\n"
+        text += "应纳税所得额: " + format_currency(r["taxable_income"]) + "\n"
+        text += "适用税率: " + str(r["tax_rate"]*100) + "%\n"
+        text += "速算扣除数: " + str(r["quick_deduction"]) + "\n"
+        text += "年度应纳税额: " + format_currency(r["annual_tax"]) + "\n"
+        text += "已预缴税额: " + format_currency(r["quarterly_prepaid"]) + "\n\n"
+        text += "---\n"
+        diff = r["difference"]
         if diff > 0:
-            self.a_result_text.insert(tk.END, f"  ★ 应补缴税额:   {format_currency(diff)}\n")
+            text += "应补缴: " + format_currency(diff)
         elif diff < 0:
-            self.a_result_text.insert(tk.END, f"  ★ 应申请退税:   {format_currency(abs(diff))}\n")
+            text += "应退税: " + format_currency(abs(diff))
         else:
-            self.a_result_text.insert(tk.END, f"  ★ 无需补退税\n")
-
-        self.a_result_text.insert(tk.END, "=" * 48 + "\n")
-        self.a_result_text.insert(tk.END, "  汇算清缴截止日期: 次年3月31日前\n")
-        self.a_result_text.insert(tk.END, "=" * 48 + "\n")
-        self.a_result_text.config(state=tk.DISABLED)
+            text += "无差额"
+        self.a_result.delete("1.0", "end")
+        self.a_result.insert("1.0", text)
