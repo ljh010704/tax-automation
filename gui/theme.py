@@ -57,7 +57,9 @@ class ResponsiveFont:
         self._fonts = {}
         self._scale = 1.0
         self._base_sizes = dict(BASE_FONT_SIZES)
+        self._last_scale = -1
         self._create_fonts()
+        self._update_fonts()
 
     def _create_fonts(self):
         """创建 CTkFont 对象"""
@@ -78,15 +80,15 @@ class ResponsiveFont:
 
     def _on_resize(self, event):
         """窗口大小变化时更新字体"""
-        # 只响应根窗口的大小变化
-        if event.widget != self.root:
+        if event.widget is not self.root:
             return
         width = event.width
         if width <= 1:
             return
         new_scale = max(0.7, min(1.5, width / BASE_WIDTH))
-        if abs(new_scale - self._scale) < 0.02:
-            return  # 忽略微小变化
+        if abs(new_scale - self._last_scale) < 0.02:
+            return
+        self._last_scale = new_scale
         self._scale = new_scale
         self._update_fonts()
 
