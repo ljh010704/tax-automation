@@ -24,8 +24,9 @@ COLORS = {
     "sidebar_text": ["#FFFFFF", "#FFFFFF"],
 }
 
-# ===== 字体大小 =====
-FONT_SIZES = {
+# ===== 基础字体大小（基于1920x1080屏幕） =====
+BASE_SCREEN_WIDTH = 1920
+BASE_FONT_SIZES = {
     "h1": 20,
     "h2": 16,
     "body": 14,
@@ -49,28 +50,49 @@ SIDEBAR_WIDTH = 200
 
 
 class ResponsiveFont:
-    """字体管理器 - 提供统一字体对象"""
+    """响应式字体管理器 - 基于屏幕宽度缩放字体"""
 
     def __init__(self, root=None):
         self._fonts = {}
+        self._scale = 1.0
+        self._base_sizes = dict(BASE_FONT_SIZES)
         self._create_fonts()
+        self._update_fonts()
 
     def _create_fonts(self):
         """创建 CTkFont 对象"""
-        self._fonts["h1"] = ctk.CTkFont(family="Microsoft YaHei UI", size=FONT_SIZES["h1"], weight="bold")
-        self._fonts["h2"] = ctk.CTkFont(family="Microsoft YaHei UI", size=FONT_SIZES["h2"], weight="bold")
-        self._fonts["body"] = ctk.CTkFont(family="Microsoft YaHei UI", size=FONT_SIZES["body"])
-        self._fonts["small"] = ctk.CTkFont(family="Microsoft YaHei UI", size=FONT_SIZES["small"])
-        self._fonts["mono"] = ctk.CTkFont(family="Consolas", size=FONT_SIZES["mono"])
-        self._fonts["button"] = ctk.CTkFont(family="Microsoft YaHei UI", size=FONT_SIZES["button"], weight="bold")
+        self._fonts["h1"] = ctk.CTkFont(family="Microsoft YaHei UI", weight="bold")
+        self._fonts["h2"] = ctk.CTkFont(family="Microsoft YaHei UI", weight="bold")
+        self._fonts["body"] = ctk.CTkFont(family="Microsoft YaHei UI")
+        self._fonts["small"] = ctk.CTkFont(family="Microsoft YaHei UI")
+        self._fonts["mono"] = ctk.CTkFont(family="Consolas")
+        self._fonts["button"] = ctk.CTkFont(family="Microsoft YaHei UI", weight="bold")
 
     def get(self, name):
         """获取字体对象"""
         return self._fonts[name]
 
     def bind_resize(self):
-        """兼容接口 - 不再绑定resize（使用固定字体）"""
+        """兼容接口"""
         pass
+
+    def _update_fonts(self):
+        """根据屏幕宽度更新字体大小"""
+        try:
+            # 获取屏幕宽度（物理像素）
+            import tkinter as tk
+            root = tk.Tk()
+            screen_width = root.winfo_screenwidth()
+            root.destroy()
+            # 计算缩放比例
+            self._scale = max(0.8, min(2.0, screen_width / BASE_SCREEN_WIDTH))
+        except:
+            self._scale = 1.0
+
+        for name, font in self._fonts.items():
+            base_size = self._base_sizes.get(name, 14)
+            new_size = max(8, int(base_size * self._scale))
+            font.configure(size=new_size)
 
 
 # ===== 兼容旧代码的全局字体变量 =====
