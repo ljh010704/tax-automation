@@ -3,6 +3,7 @@
 """
 
 import sys
+import os
 from tkinter import END
 
 import customtkinter as ctk

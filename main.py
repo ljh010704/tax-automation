@@ -2,10 +2,18 @@
 
 import sys
 import os
+import ctypes
 
 sys.path.insert(0, os.path.dirname(__file__))
 
 from gui.main_window import MainWindow
+
+
+# DPI awareness fix for Windows
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)
+except Exception:
+    pass
 
 
 def main():

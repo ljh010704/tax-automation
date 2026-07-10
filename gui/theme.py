@@ -1,10 +1,10 @@
-﻿\"\"\"
+"""
 UI 主题配置 - 统一配色、字体、间距
-\"\"\"
+"""
 
 # ===== 配色方案 =====
 COLORS = {
-    "primary": ["#3B82F6", "#2563EB"],      # 主色 [浅色, 深色]
+    "primary": ["#3B82F6", "#2563EB"],
     "primary_hover": ["#2563EB", "#1D4ED8"],
     "success": ["#10B981", "#059669"],
     "success_hover": ["#059669", "#047857"],
@@ -47,17 +47,17 @@ SIDEBAR_WIDTH = 200
 class Theme:
     @staticmethod
     def color(name, mode=0):
-        \"\"\"获取颜色，mode=0 浅色, mode=1 深色\"\"\"
+        """获取颜色，mode=0 浅色, mode=1 深色"""
         return COLORS.get(name, ["#000000", "#000000"])[mode]
 
     @staticmethod
     def set_appearance(mode="light"):
-        \"\"\"设置全局主题: 'light', 'dark', 'system'\"\"\"
+        """设置全局主题: 'light', 'dark', 'system'"""
         import customtkinter as ctk
         ctk.set_appearance_mode(mode)
 
     @staticmethod
     def set_color_theme(theme="blue"):
-        \"\"\"设置颜色主题\"\"\"
+        """设置颜色主题"""
         import customtkinter as ctk
         ctk.set_default_color_theme(theme)
