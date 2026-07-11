@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}??????{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>??????</h1>
+</div>
+
+<div class="card">
+    <form method="POST" action="{{ url_for('entities.add_entity') }}" class="form-grid">
+        <div class="form-group">
+            <label>???????? *</label>
+            <input type="text" name="credit_code" required maxlength="18" placeholder="18?????????">
+        </div>
+        <div class="form-group">
+            <label>???? *</label>
+            <input type="text" name="name" required placeholder="???????">
+        </div>
+        <div class="form-group">
+            <label>????</label>
+            <select name="entity_type">
+                <option value="?????" selected>?????</option>
+                <option value="??????">??????</option>
+                <option value="??????">??????</option>
+                <option value="??">??</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>?????</label>
+            <select name="taxpayer_type">
+                <option value="small_scale" selected>??????</option>
+                <option value="general">?????</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>?????</label>
+            <input type="text" name="legal_representative" placeholder="???????">
+        </div>
+        <div class="form-group">
+            <label>??</label>
+            <input type="text" name="province" placeholder="?????">
+        </div>
+        <div class="form-group">
+            <label>??</label>
+            <input type="text" name="city" placeholder="?????">
+        </div>
+        <div class="form-group">
+            <label>??????</label>
+            <input type="text" name="tax_authority" placeholder="????????XX???">
+        </div>
+        <div class="form-group">
+            <label>???????</label>
+            <input type="url" name="login_url" placeholder="https://...">
+        </div>
+        <div class="form-group">
+            <label>????</label>
+            <input type="text" name="business_status" value="??">
+        </div>
+        <div class="form-group">
+            <label>?????</label>
+            <input type="text" name="taxpayer_status" value="??">
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">??</button>
+            <a href="{{ url_for('entities.list_entities') }}" class="btn">??</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

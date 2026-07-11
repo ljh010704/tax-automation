@@ -1,4 +1,4 @@
-"""
+﻿"""
 记账窗口 - customtkinter UI
 """
 
@@ -29,7 +29,7 @@ class BookkeepingWindow:
         self.window.grab_set()
 
         # 响应式字体
-        self.fonts = ResponsiveFont()
+        self.fonts = ResponsiveFont(self.window)
         # fonts initialized
 
         self._create_widgets()

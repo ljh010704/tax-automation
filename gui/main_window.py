@@ -1,4 +1,4 @@
-"""
+﻿"""
 税务记账助手 - 主窗口 (customtkinter 现代 UI)
 """
 
@@ -34,8 +34,8 @@ class MainWindow:
         self.root.geometry("1020x680")
         self.root.minsize(800, 500)
 
-        # 响应式字体管理器
-        self.fonts = ResponsiveFont()
+        # 响应式字体管理器（基于窗口大小缩放）
+        self.fonts = ResponsiveFont(self.root)
 
         self.dm = DataManager()
         self.calc = TaxCalculator()

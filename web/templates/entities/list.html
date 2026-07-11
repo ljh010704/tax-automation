@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}????{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>??????</h1>
+    <a href="{{ url_for('entities.add_entity') }}" class="btn btn-primary">????</a>
+</div>
+
+{% if entities %}
+<div class="card">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>????</th>
+                <th>????</th>
+                <th>??</th>
+                <th>??</th>
+                <th>??</th>
+                <th>??</th>
+                <th>??</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for e in entities %}
+            <tr>
+                <td><strong>{{ e.name }}</strong></td>
+                <td><code>{{ e.credit_code }}</code></td>
+                <td>{{ e.entity_type }}</td>
+                <td>{{ e.province or '-' }}</td>
+                <td>{{ e.city or '-' }}</td>
+                <td><span class="badge badge-success">{{ e.business_status }}</span></td>
+                <td class="actions">
+                    <a href="{{ url_for('entities.edit_entity', entity_id=e.id) }}" class="btn btn-sm">??</a>
+                    <a href="{{ url_for('bookkeeping.entity_transactions', entity_id=e.id) }}" class="btn btn-sm">??</a>
+                    <form method="POST" action="{{ url_for('entities.query_entity', entity_id=e.id) }}" class="inline" onsubmit="return confirm('?????????')">
+                        <button type="submit" class="btn btn-sm btn-query">??</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('entities.delete_entity', entity_id=e.id) }}" class="inline" onsubmit="return confirm('?????')">
+                        <button type="submit" class="btn btn-sm btn-danger">??</button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="card empty-state">
+    <p>??????</p>
+    <a href="{{ url_for('entities.add_entity') }}" class="btn btn-primary">???????</a>
+</div>
+{% endif %}
+{% endblock %}

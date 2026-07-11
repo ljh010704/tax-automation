@@ -1,4 +1,4 @@
-"""
+﻿"""
 经营管理主体窗口 - customtkinter UI
 """
 
@@ -27,7 +27,7 @@ class EntityManagerWindow:
         self.window.grab_set()
 
         # 响应式字体
-        self.fonts = ResponsiveFont()
+        self.fonts = ResponsiveFont(self.window)
         # fonts initialized
 
         self._create_widgets()
@@ -85,7 +85,7 @@ class EntityManagerWindow:
         dialog.geometry("480x420")
         dialog.grab_set()
 
-        dialog_fonts = ResponsiveFont()
+        dialog_fonts = ResponsiveFont(dialog)
         # dialog fonts initialized
 
         form_frame = ctk.CTkScrollableFrame(dialog, fg_color=COLORS["bg"][0])

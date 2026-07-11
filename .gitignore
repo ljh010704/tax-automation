@@ -1,26 +1,26 @@
-﻿__pycache__/
-*.pyc
-*.pyo
-data/browser_data/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.env
+
+# Database
 data/*.db
-*.png
+data/browser_data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
 login_waiting.png
 search_result.png
-company_detail.png
-_apply_fix.py
-_check_addr.py
-_debug_lines.txt
-_detail_*.txt
-_e2e_*.txt
-_e2e_test.py
-_h1_texts.txt
-_page_text.txt
-_patch_addr.py
-check_db.py
-test_inspect_detail.py
-test_query.py
-test_run2.py
-
-git_push.bat
-
-_view_em.py

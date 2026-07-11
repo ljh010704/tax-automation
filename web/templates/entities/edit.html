@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}??????{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>??????</h1>
+</div>
+
+<div class="card">
+    <form method="POST" action="{{ url_for('entities.edit_entity', entity_id=entity.id) }}" class="form-grid">
+        <div class="form-group">
+            <label>????????</label>
+            <input type="text" name="credit_code" value="{{ entity.credit_code }}" readonly>
+        </div>
+        <div class="form-group">
+            <label>???? *</label>
+            <input type="text" name="name" value="{{ entity.name }}" required>
+        </div>
+        <div class="form-group">
+            <label>????</label>
+            <select name="entity_type">
+                {% for t in ["?????", "??????", "??????", "??"] %}
+                <option value="{{ t }}" {% if entity.entity_type == t %}selected{% endif %}>{{ t }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>?????</label>
+            <select name="taxpayer_type">
+                <option value="small_scale" {% if entity.taxpayer_type == "small_scale" %}selected{% endif %}>??????</option>
+                <option value="general" {% if entity.taxpayer_type == "general" %}selected{% endif %}>?????</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>?????</label>
+            <input type="text" name="legal_representative" value="{{ entity.legal_representative or '' }}">
+        </div>
+        <div class="form-group">
+            <label>??</label>
+            <input type="text" name="province" value="{{ entity.province or '' }}">
+        </div>
+        <div class="form-group">
+            <label>??</label>
+            <input type="text" name="city" value="{{ entity.city or '' }}">
+        </div>
+        <div class="form-group">
+            <label>??????</label>
+            <input type="text" name="tax_authority" value="{{ entity.tax_authority or '' }}">
+        </div>
+        <div class="form-group">
+            <label>???????</label>
+            <input type="url" name="login_url" value="{{ entity.login_url or '' }}">
+        </div>
+        <div class="form-group">
+            <label>????</label>
+            <input type="text" name="business_status" value="{{ entity.business_status or '??' }}">
+        </div>
+        <div class="form-group">
+            <label>?????</label>
+            <input type="text" name="taxpayer_status" value="{{ entity.taxpayer_status or '??' }}">
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">????</button>
+            <a href="{{ url_for('entities.list_entities') }}" class="btn">??</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

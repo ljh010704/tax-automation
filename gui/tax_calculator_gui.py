@@ -1,4 +1,4 @@
-"""
+﻿"""
 税额计算器 - customtkinter UI (Notebook 四页签)
 """
 
@@ -26,7 +26,7 @@ class TaxCalculatorWindow:
         self.window.grab_set()
 
         # 响应式字体
-        self.fonts = ResponsiveFont()
+        self.fonts = ResponsiveFont(self.window)
         # fonts initialized
 
         # Notebook

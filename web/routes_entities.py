@@ -1,0 +1,120 @@
+"""????????"""
+
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask_login import login_required, current_user
+from core.data_manager import DataManager
+from core.tax_calculator import TaxCalculator
+from core.business_query import BusinessQueryOffline
+
+entities_bp = Blueprint("entities", __name__)
+
+def _dm():
+    dm = DataManager()
+    dm.set_current_user(current_user.id)
+    return dm
+
+@entities_bp.route("/")
+@login_required
+def list_entities():
+    dm = _dm()
+    entities = dm.list_entities()
+    return render_template("entities/list.html", entities=entities)
+
+@entities_bp.route("/add", methods=["GET", "POST"])
+@login_required
+def add_entity():
+    if request.method == "POST":
+        credit_code = request.form.get("credit_code", "").strip().upper()
+        if not BusinessQueryOffline.validate_credit_code(credit_code):
+            flash("?????????????", "error")
+            return redirect(url_for("entities.add_entity"))
+
+        entity = {
+            "name": request.form.get("name", "").strip(),
+            "credit_code": credit_code,
+            "entity_type": request.form.get("entity_type", "?????"),
+            "taxpayer_type": request.form.get("taxpayer_type", "small_scale"),
+            "legal_representative": request.form.get("legal_representative", "").strip(),
+            "business_status": request.form.get("business_status", "??"),
+            "taxpayer_status": request.form.get("taxpayer_status", "??"),
+            "province": request.form.get("province", "").strip(),
+            "city": request.form.get("city", "").strip(),
+            "tax_authority": request.form.get("tax_authority", "").strip(),
+            "login_url": request.form.get("login_url", "").strip(),
+        }
+        if not entity["name"]:
+            flash("????????", "error")
+            return redirect(url_for("entities.add_entity"))
+
+        try:
+            dm = _dm()
+            dm.add_entity(entity)
+            flash("????????", "success")
+            return redirect(url_for("entities.list_entities"))
+        except Exception as e:
+            if "UNIQUE" in str(e):
+                flash("??????", "error")
+            else:
+                flash("????: " + str(e), "error")
+            return redirect(url_for("entities.add_entity"))
+
+    return render_template("entities/add.html")
+
+@entities_bp.route("/<int:entity_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_entity(entity_id):
+    dm = _dm()
+    entity = dm.get_entity(entity_id)
+    if not entity:
+        flash("?????", "error")
+        return redirect(url_for("entities.list_entities"))
+
+    if request.method == "POST":
+        updates = {
+            "name": request.form.get("name", "").strip(),
+            "entity_type": request.form.get("entity_type", ""),
+            "taxpayer_type": request.form.get("taxpayer_type", ""),
+            "legal_representative": request.form.get("legal_representative", "").strip(),
+            "business_status": request.form.get("business_status", ""),
+            "taxpayer_status": request.form.get("taxpayer_status", ""),
+            "province": request.form.get("province", "").strip(),
+            "city": request.form.get("city", "").strip(),
+            "tax_authority": request.form.get("tax_authority", "").strip(),
+            "login_url": request.form.get("login_url", "").strip(),
+        }
+        dm.update_entity(entity_id, updates)
+        flash("????", "success")
+        return redirect(url_for("entities.list_entities"))
+
+    return render_template("entities/edit.html", entity=entity)
+
+@entities_bp.route("/<int:entity_id>/delete", methods=["POST"])
+@login_required
+def delete_entity(entity_id):
+    dm = _dm()
+    dm.delete_entity(entity_id)
+    flash("???", "success")
+    return redirect(url_for("entities.list_entities"))
+
+@entities_bp.route("/<int:entity_id>/query", methods=["POST"])
+@login_required
+def query_entity(entity_id):
+    from core.business_query import query_business_info_sync
+
+    dm = _dm()
+    entity = dm.get_entity(entity_id)
+    if not entity:
+        return jsonify({"error": "?????"}), 404
+
+    credit_code = entity["credit_code"]
+    if not BusinessQueryOffline.validate_credit_code(credit_code):
+        return jsonify({"error": "?????????????"}), 400
+
+    try:
+        result = query_business_info_sync(credit_code)
+        if result:
+            dm.update_entity(entity_id, result)
+            return jsonify({"success": True, "data": result})
+        return jsonify({"error": "???????????????"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

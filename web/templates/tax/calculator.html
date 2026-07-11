@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}???? - {{ entity.name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <h1>{{ entity.name }} - ????</h1>
+    <a href="{{ url_for('tax.dashboard') }}" class="btn">??</a>
+</div>
+
+<div class="card">
+    <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('tab-quarterly')">????</button>
+        <button class="tab-btn" onclick="showTab('tab-stamp')">???</button>
+        <button class="tab-btn" onclick="showTab('tab-social')">????</button>
+        <button class="tab-btn" onclick="showTab('tab-annual')">????</button>
+    </div>
+
+    <!-- ???? -->
+    <div id="tab-quarterly" class="tab-content active">
+        <form id="form-quarterly" class="tax-form">
+            <div class="form-group"><label>????</label><input type="number" name="quarterly_income" step="0.01" required></div>
+            <div class="form-group"><label>?????</label><select name="taxpayer_type"><option value="small_scale">??????</option><option value="general">?????</option></select></div>
+            <button type="submit" class="btn btn-primary">??</button>
+        </form>
+        <div id="result-quarterly" class="result-box" style="display:none;"></div>
+    </div>
+
+    <!-- ??? -->
+    <div id="tab-stamp" class="tab-content">
+        <form id="form-stamp" class="tax-form">
+            <div class="form-group"><label>????</label><input type="number" name="quarterly_income" step="0.01" required></div>
+            <div class="form-group"><label>????</label><input type="number" name="paid_capital" step="0.01" value="0"></div>
+            <button type="submit" class="btn btn-primary">??</button>
+        </form>
+        <div id="result-stamp" class="result-box" style="display:none;"></div>
+    </div>
+
+    <!-- ???? -->
+    <div id="tab-social" class="tab-content">
+        <form id="form-social" class="tax-form">
+            <div class="form-group"><label>?????</label><input type="number" name="monthly_base" step="0.01" required></div>
+            <button type="submit" class="btn btn-primary">??</button>
+        </form>
+        <div id="result-social" class="result-box" style="display:none;"></div>
+    </div>
+
+    <!-- ???? -->
+    <div id="tab-annual" class="tab-content">
+        <form id="form-annual" class="tax-form">
+            <div class="form-group"><label>????</label><input type="number" name="annual_income" step="0.01" required></div>
+            <div class="form-group"><label>????</label><input type="number" name="annual_expenses" step="0.01" value="0"></div>
+            <div class="form-group"><label>?????</label><input type="number" name="quarterly_prepaid" step="0.01" value="0"></div>
+            <button type="submit" class="btn btn-primary">??</button>
+        </form>
+        <div id="result-annual" class="result-box" style="display:none;"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showTab(id) {
+    document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+    event.target.classList.add("active");
+}
+
+function submitTax(formId, resultId, calcType) {
+    const form = document.getElementById(formId);
+    const data = { entity_id: {{ entity.id }}, calc_type: calcType };
+    new FormData(form).forEach((v, k) => { data[k] = v; });
+    fetch("{{ url_for('tax.calculate') }}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(data)
+    }).then(r => r.json()).then(d => {
+        const box = document.getElementById(resultId);
+        box.style.display = "block";
+        box.textContent = d.result || d.error || "????";
+    });
+}
+
+["form-quarterly","form-stamp","form-social","form-annual"].forEach((f, i) => {
+    const types = ["quarterly","stamp","social","annual"];
+    document.getElementById(f).addEventListener("submit", e => {
+        e.preventDefault();
+        submitTax(f, "result-" + types[i], types[i]);
+    });
+});
+</script>
+{% endblock %}

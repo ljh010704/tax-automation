@@ -3,6 +3,7 @@ UI 主题配置 - 统一配色、响应式字体、间距
 """
 
 import customtkinter as ctk
+import math
 
 # ===== 配色方案 =====
 COLORS = {
@@ -24,8 +25,7 @@ COLORS = {
     "sidebar_text": ["#FFFFFF", "#FFFFFF"],
 }
 
-# ===== 基础字体大小（基于1920x1080屏幕） =====
-BASE_SCREEN_WIDTH = 1920
+# ===== 基础字体大小（基于窗口初始尺寸）=====
 BASE_FONT_SIZES = {
     "h1": 20,
     "h2": 16,
@@ -50,14 +50,18 @@ SIDEBAR_WIDTH = 200
 
 
 class ResponsiveFont:
-    """响应式字体管理器 - 基于屏幕宽度缩放字体"""
+    """响应式字体管理器 - 基于窗口大小实时缩放字体"""
 
-    def __init__(self, root=None):
+    def __init__(self, window=None):
         self._fonts = {}
         self._scale = 1.0
         self._base_sizes = dict(BASE_FONT_SIZES)
+        self._window = window
+        self._base_width = None
+        self._initialized = False
         self._create_fonts()
-        self._update_fonts()
+        if window is not None:
+            window.bind("<Configure>", self._on_configure, add="+")
 
     def _create_fonts(self):
         """创建 CTkFont 对象"""
@@ -72,27 +76,33 @@ class ResponsiveFont:
         """获取字体对象"""
         return self._fonts[name]
 
-    def bind_resize(self):
-        """兼容接口"""
-        pass
+    def _on_configure(self, event):
+        """窗口配置事件 - 处理首次初始化和后续缩放"""
+        # 确保是顶层窗口的事件（避免子组件触发）
+        if event.widget != self._window:
+            return
+        if not self._initialized:
+            self._base_width = event.width
+            self._initialized = True
+            self._update_fonts(event.width)
+        else:
+            self._update_fonts(event.width)
 
-    def _update_fonts(self):
-        """根据屏幕宽度更新字体大小"""
-        try:
-            # 获取屏幕宽度（物理像素）
-            import tkinter as tk
-            root = tk.Tk()
-            screen_width = root.winfo_screenwidth()
-            root.destroy()
-            # 计算缩放比例
-            self._scale = max(0.8, min(2.0, screen_width / BASE_SCREEN_WIDTH))
-        except:
-            self._scale = 1.0
-
+    def _update_fonts(self, current_width):
+        """根据当前窗口宽度更新字体大小"""
+        if self._base_width and self._base_width > 0:
+            scale = max(0.8, min(1.5, math.sqrt(current_width / self._base_width)))
+        else:
+            scale = 1.0
+        self._scale = scale
         for name, font in self._fonts.items():
             base_size = self._base_sizes.get(name, 14)
-            new_size = max(8, int(base_size * self._scale))
+            new_size = max(8, int(base_size * scale))
             font.configure(size=new_size)
+
+    def bind_resize(self):
+        """兼容接口 - 无实际操作（已在初始化时绑定）"""
+        pass
 
 
 # ===== 兼容旧代码的全局字体变量 =====
@@ -116,3 +126,5 @@ class Theme:
     @staticmethod
     def set_color_theme(theme="blue"):
         ctk.set_default_color_theme(theme)
+
+
