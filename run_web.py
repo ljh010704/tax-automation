@@ -1,4 +1,4 @@
-﻿"""Web 版本入口"""
+"""Web 版本入口"""
 
 import os
 import sys

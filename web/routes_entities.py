@@ -1,4 +1,4 @@
-﻿"""企业信息管理模块"""
+"""企业信息管理模块"""
 
 import threading
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify

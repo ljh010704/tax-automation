@@ -1,4 +1,4 @@
-﻿"""Flask 应用工厂"""
+"""Flask 应用工厂"""
 
 import os
 import sys

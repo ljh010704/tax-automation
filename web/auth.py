@@ -125,7 +125,7 @@ def register():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
-        password2 = request.form.get("password2", "")
+        password2 = request.form.get("password_confirm", "")
         if not username or not password:
             flash("用户名和密码不能为空", "error")
         elif password != password2:
