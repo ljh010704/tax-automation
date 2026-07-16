@@ -1,43 +1,85 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}税务自动化系统{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>">
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
+    {% block body_before %}{% endblock %}
+
     {% if current_user.is_authenticated %}
-    <nav class="navbar">
-        <div class="nav-brand">税务自动化系统</div>
-        <ul class="nav-menu">
-            <li><a href="{{ url_for('main.dashboard') }}">首页</a></li>
-            <li><a href="{{ url_for('entities.list_entities') }}">企业管理</a></li>
-            <li><a href="{{ url_for('bookkeeping.index') }}">记账</a></li>
-            <li><a href="{{ url_for('tax.dashboard') }}">税务管理</a></li>
-            <li><a href="{{ url_for('tax.declaration_page') }}">申报</a></li>
-        </ul>
-        <div class="nav-user">
-            <span>{{ current_user.username }}</span>
-            <a href="{{ url_for('auth.logout') }}" class="btn-logout">退出</a>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <h1>税务自动化</h1>
+                <div class="brand-sub">Tax Auto v2.0</div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="sidebar-section">主要功能</div>
+                <a href="{{ url_for('main.dashboard') }}" class="sidebar-link {% if request.endpoint and request.endpoint == 'main.dashboard' %}active{% endif %}">
+                    <span class="icon">📊</span><span>工作台</span>
+                </a>
+                <a href="{{ url_for('entities.list_entities') }}" class="sidebar-link {% if request.endpoint and request.endpoint.startswith('entities.') %}active{% endif %}">
+                    <span class="icon">🏢</span><span>企业管理</span>
+                </a>
+                <a href="{{ url_for('bookkeeping.index') }}" class="sidebar-link {% if request.endpoint and request.endpoint.startswith('bookkeeping.') %}active{% endif %}">
+                    <span class="icon">📒</span><span>记账管理</span>
+                </a>
+                <div class="sidebar-section">税务服务</div>
+                <a href="{{ url_for('tax.dashboard') }}" class="sidebar-link {% if request.endpoint and request.endpoint.startswith('tax.') and request.endpoint != 'tax.declaration_page' %}active{% endif %}">
+                    <span class="icon">📋</span><span>税务概览</span>
+                </a>
+                <a href="{{ url_for('tax.declaration_page') }}" class="sidebar-link {% if request.endpoint and request.endpoint == 'tax.declaration_page' %}active{% endif %}">
+                    <span class="icon">📝</span><span>纳税申报</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="avatar">{{ current_user.username[0]|upper }}</div>
+                    <div class="user-info">
+                        <div class="user-name">{{ current_user.username }}</div>
+                        <a href="{{ url_for('auth.logout') }}" class="logout-btn">退出登录</a>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <div class="main-content">
+            <div class="topbar">
+                <div class="topbar-title">{% block page_title %}{% endblock %}</div>
+            </div>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-messages page-content" style="padding-bottom:0">
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+            <div class="page-content">
+                {% block content_auth %}{% endblock %}
+            </div>
         </div>
-    </nav>
-    {% endif %}
-    
-    <main class="container">
+    </div>
+    {% else %}
+    <div class="auth-shell">
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-        <div class="flash-messages">
+        <div class="flash-messages" style="position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:200;width:90%;max-width:480px">
             {% for category, message in messages %}
             <div class="alert alert-{{ category }}">{{ message }}</div>
             {% endfor %}
         </div>
         {% endif %}
         {% endwith %}
-        
-        {% block content %}{% endblock %}
-    </main>
-    
+        {% block content_guest %}{% endblock %}
+    </div>
+    {% endif %}
+
+    {% block body_after %}{% endblock %}
     {% block scripts %}{% endblock %}
 </body>
 </html>

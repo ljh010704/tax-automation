@@ -1,68 +1,179 @@
-{% extends "base.html" %}
+﻿﻿{% extends "base.html" %}
 {% block title %}添加企业{% endblock %}
-{% block content %}
+{% block content_auth %}
 <div class="page-header">
     <h1>添加企业</h1>
+    <a href="{{ url_for('entities.list_entities') }}" class="btn btn-secondary">返回列表</a>
 </div>
 
 <div class="card">
-    <form method="POST" action="{{ url_for('entities.add_entity') }}" class="form-grid">
-        <div class="form-group">
+    <form method="POST" action="{{ url_for('entities.add_entity') }}" class="form-grid" id="addEntityForm">
+        <div class="form-group full-width">
             <label>统一社会信用代码 *</label>
-            <input type="text" name="credit_code" required maxlength="18" placeholder="18位统一社会信用代码">
+            <div class="input-with-btn">
+                <input type="text" name="credit_code" id="credit_code" required maxlength="18" placeholder="18位统一社会信用代码" autocomplete="off">
+                <button type="button" class="btn btn-query" id="btnLookup" onclick="lookupEnterprise()" disabled>
+                    <span id="lookupText">查询</span>
+                    <span id="lookupSpinner" class="spinner hidden"></span>
+                </button>
+            </div>
+            <div id="lookupMsg" class="form-msg hidden"></div>
         </div>
         <div class="form-group">
             <label>企业名称 *</label>
-            <input type="text" name="name" required placeholder="请输入企业名称">
+            <input type="text" name="name" id="name" required placeholder="输入信用代码后自动填充" readonly>
         </div>
         <div class="form-group">
             <label>企业类型</label>
-            <select name="entity_type">
-                <option value="个体工商户" selected>个体工商户</option>
-                <option value="有限责任公司">有限责任公司</option>
+            <select name="entity_type" id="entity_type">
+                <option value="个体工商户">个体工商户</option>
+                <option value="有限责任公司" selected>有限责任公司</option>
                 <option value="股份有限公司">股份有限公司</option>
+                <option value="个人独资企业">个人独资企业</option>
+                <option value="合伙企业">合伙企业</option>
                 <option value="其他">其他</option>
             </select>
         </div>
         <div class="form-group">
             <label>纳税人类型</label>
-            <select name="taxpayer_type">
+            <select name="taxpayer_type" id="taxpayer_type">
                 <option value="small_scale" selected>小规模纳税人</option>
                 <option value="general">一般纳税人</option>
             </select>
         </div>
         <div class="form-group">
             <label>法定代表人</label>
-            <input type="text" name="legal_representative" placeholder="请输入法定代表人">
+            <input type="text" name="legal_representative" id="legal_representative" placeholder="输入信用代码后自动填充" readonly>
         </div>
         <div class="form-group">
             <label>省份</label>
-            <input type="text" name="province" placeholder="请输入省份">
+            <input type="text" name="province" id="province" placeholder="输入信用代码后自动填充" readonly>
         </div>
         <div class="form-group">
             <label>城市</label>
-            <input type="text" name="city" placeholder="请输入城市">
+            <input type="text" name="city" id="city" placeholder="输入信用代码后自动填充" readonly>
         </div>
         <div class="form-group">
             <label>主管税务机关</label>
-            <input type="text" name="tax_authority" placeholder="请输入主管税务机关名称">
+            <input type="text" name="tax_authority" id="tax_authority" placeholder="输入信用代码后自动填充" readonly>
         </div>
         <div class="form-group">
             <label>登录地址</label>
-            <input type="url" name="login_url" placeholder="https://...">
+            <input type="url" name="login_url" id="login_url" placeholder="输入信用代码后自动填充" readonly>
         </div>
         <div class="form-group">
             <label>营业状态</label>
-            <input type="text" name="business_status" value="正常">
+            <input type="text" name="business_status" id="business_status" value="正常" readonly>
         </div>
         <div class="form-group">
             <label>纳税人状态</label>
-            <input type="text" name="taxpayer_status" value="正常">
+            <input type="text" name="taxpayer_status" id="taxpayer_status" value="正常" readonly>
         </div>
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">保存</button>
-            <a href="{{ url_for('entities.list_entities') }}" class="btn">取消</a>
+            <a href="{{ url_for('entities.list_entities') }}" class="btn btn-secondary">取消</a>
         </div>
     </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const creditInput = document.getElementById('credit_code');
+const btnLookup = document.getElementById('btnLookup');
+const lookupText = document.getElementById('lookupText');
+const lookupSpinner = document.getElementById('lookupSpinner');
+const lookupMsg = document.getElementById('lookupMsg');
+
+// Enable/disable lookup button based on credit code length
+creditInput.addEventListener('input', function() {
+    this.value = this.value.toUpperCase().replace(/[^0-9A-Z]/g, '');
+    btnLookup.disabled = this.value.length !== 18;
+    hideMsg();
+});
+
+// Allow Enter key to trigger lookup
+creditInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && this.value.length === 18) {
+        e.preventDefault();
+        lookupEnterprise();
+    }
+});
+
+function showMsg(text, type) {
+    lookupMsg.textContent = text;
+    lookupMsg.className = 'form-msg visible msg-' + type;
+}
+
+function hideMsg() {
+    lookupMsg.className = 'form-msg hidden';
+}
+
+function setLoading(loading) {
+    btnLookup.disabled = loading || creditInput.value.length !== 18;
+    lookupText.className = loading ? 'hidden' : '';
+    lookupSpinner.className = loading ? 'spinner' : 'spinner hidden';
+}
+
+function setField(id, value) {
+    const el = document.getElementById(id);
+    if (el && value) {
+        el.value = value;
+        el.classList.add('field-filled');
+        setTimeout(() => el.classList.remove('field-filled'), 600);
+    }
+}
+
+async function lookupEnterprise() {
+    const code = creditInput.value.trim().toUpperCase();
+    if (code.length !== 18) {
+        showMsg('请输入18位统一社会信用代码', 'warning');
+        return;
+    }
+
+    setLoading(true);
+    showMsg('正在查询企业信息，请稍候...', 'info');
+
+    try {
+        const resp = await fetch('{{ url_for("entities.api_lookup") }}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({credit_code: code})
+        });
+
+        const data = await resp.json();
+
+        if (data.success && data.data) {
+            const d = data.data;
+            setField('name', d.name);
+            setField('legal_representative', d.legal_representative);
+            setField('business_status', d.business_status);
+            setField('taxpayer_status', d.taxpayer_status);
+            setField('province', d.province);
+            setField('city', d.city);
+            setField('tax_authority', d.tax_authority);
+            setField('login_url', d.login_url);
+
+            // Set entity type if it matches one of the options
+            if (d.entity_type) {
+                const typeSelect = document.getElementById('entity_type');
+                for (let i = 0; i < typeSelect.options.length; i++) {
+                    if (typeSelect.options[i].value === d.entity_type) {
+                        typeSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            showMsg('查询成功！已自动填充企业信息', 'success');
+        } else {
+            showMsg(data.error || '未查询到企业信息', 'error');
+        }
+    } catch (err) {
+        showMsg('查询失败: ' + err.message, 'error');
+    } finally {
+        setLoading(false);
+    }
+}
+</script>
 {% endblock %}

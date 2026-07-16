@@ -1,6 +1,6 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block title %}账务 - {{ entity.name }}{% endblock %}
-{% block content %}
+{% block content_auth %}
 <div class="page-header">
     <h1>{{ entity.name }} - 账务</h1>
     <a href="{{ url_for('bookkeeping.reports', entity_id=entity.id) }}" class="btn">报表</a>

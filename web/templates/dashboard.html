@@ -1,9 +1,10 @@
-﻿{% extends "base.html" %}
-{% block title %}首页 - 税务自动化系统{% endblock %}
-{% block content %}
-<div class="page-header">
-    <h1>仪表盘</h1>
-    <p class="text-muted">{{ now.strftime('%Y年%m月%d日') }}</p>
+﻿﻿{% extends "base.html" %}
+{% block title %}工作台 - 税务自动化系统{% endblock %}
+{% block content_auth %}
+
+<div class="welcome-banner">
+    <h2>欢迎回来 👋</h2>
+    <p>{{ now.strftime('%Y年%m月%d日 %A') }}</p>
 </div>
 
 <div class="card-grid">
@@ -12,53 +13,69 @@
         <div class="stat-label">企业数量</div>
     </div>
     <div class="card stat-card">
-        <div class="stat-value">compliance_count|default(0)</div>
+        <div class="stat-value">{{ compliance_items|length }}</div>
         <div class="stat-label">合规事项</div>
     </div>
 </div>
 
 <div class="card">
-    <h2>合规日历</h2>
-    <table class="table">
-        <thead>
-            <tr><th>申报期限</th><th>税种</th><th>状态</th></tr>
-        </thead>
-        <tbody>
-        {% for item in compliance_items %}
-            <tr>
-                <td>{{ item.period }}</td>
-                <td>{{ item.item }}</td>
-                <td>
-                    {% if item.due %}
-                    <span class="badge badge-warning">待申报</span>
-                    {% else %}
-                    <span class="badge badge-muted">无需申报</span>
-                    {% endif %}
-                </td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+    <div class="card-header">
+        <h2>📅 合规日历</h2>
+    </div>
+    <div class="table-wrapper">
+        <table class="table">
+            <thead>
+                <tr><th>申报期限</th><th>税种</th><th>状态</th></tr>
+            </thead>
+            <tbody>
+            {% for item in compliance_items %}
+                <tr>
+                    <td><span class="compliance-period">{{ item.period }}</span></td>
+                    <td>{{ item.item }}</td>
+                    <td>
+                        {% if item.due %}
+                        <span class="badge badge-warning">待申报</span>
+                        {% else %}
+                        <span class="badge badge-muted">无需申报</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <div class="card">
-    <h2>企业列表</h2>
+    <div class="card-header">
+        <h2>🏢 企业列表</h2>
+        <a href="{{ url_for('entities.add_entity') }}" class="btn btn-primary btn-sm">添加企业</a>
+    </div>
     {% if entities %}
-    <table class="table">
-        <thead><tr><th>企业名称</th><th>类型</th><th>省份</th><th>状态</th></tr></thead>
-        <tbody>
-        {% for e in entities %}
-            <tr>
-                <td><a href="{{ url_for('bookkeeping.entity_transactions', entity_id=e.id) }}">{{ e.name }}</a></td>
-                <td>{{ e.entity_type }}</td>
-                <td>{{ e.province or '-' }}</td>
-                <td><span class="badge badge-success">{{ e.business_status }}</span></td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+    <div class="table-wrapper">
+        <table class="table">
+            <thead><tr><th>企业名称</th><th>类型</th><th>省份</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody>
+            {% for e in entities %}
+                <tr>
+                    <td><a href="{{ url_for('bookkeeping.entity_transactions', entity_id=e.id) }}">{{ e.name }}</a></td>
+                    <td>{{ e.entity_type }}</td>
+                    <td>{{ e.province or '-' }}</td>
+                    <td><span class="badge badge-success">{{ e.business_status }}</span></td>
+                    <td class="actions">
+                        <a href="{{ url_for('entities.edit_entity', entity_id=e.id) }}" class="btn btn-sm">编辑</a>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% else %}
-    <p class="text-muted">暂无企业数据，<a href="{{ url_for('entities.add_entity') }}">添加企业</a></p>
+    <div class="empty-state">
+        <div class="empty-state-icon">🏢</div>
+        <p>暂无企业数据</p>
+        <a href="{{ url_for('entities.add_entity') }}" class="btn btn-primary">添加第一个企业</a>
+    </div>
     {% endif %}
 </div>
 {% endblock %}

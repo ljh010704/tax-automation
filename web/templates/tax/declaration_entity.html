@@ -1,6 +1,6 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block title %}申报 - {{ entity.name }}{% endblock %}
-{% block content %}
+{% block content_auth %}
 <div class="page-header">
     <h1>{{ entity.name }} - 纳税申报</h1>
     <a href="{{ url_for('tax.declaration_page') }}" class="btn">返回</a>

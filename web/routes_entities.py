@@ -1,5 +1,6 @@
-"""企业信息管理模块"""
+﻿"""企业信息管理模块"""
 
+import threading
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from core.data_manager import DataManager
@@ -19,6 +20,25 @@ def list_entities():
     dm = _dm()
     entities = dm.list_entities()
     return render_template("entities/list.html", entities=entities)
+
+@entities_bp.route("/api/lookup", methods=["POST"])
+@login_required
+def api_lookup():
+    """通过统一社会信用代码查询企业信息"""
+    data = request.get_json() or {}
+    credit_code = (data.get("credit_code", "") or "").strip().upper()
+    
+    if not BusinessQueryOffline.validate_credit_code(credit_code):
+        return jsonify({"error": "统一社会信用代码格式不正确，应为18位数字大写字母"}), 400
+
+    try:
+        from core.business_query import query_business_info_sync
+        result = query_business_info_sync(credit_code)
+        if result:
+            return jsonify({"success": True, "data": result})
+        return jsonify({"error": "未查询到企业信息，请检查信用代码是否正确"}), 404
+    except Exception as e:
+        return jsonify({"error": f"查询失败: {str(e)}"}), 500
 
 @entities_bp.route("/add", methods=["GET", "POST"])
 @login_required
