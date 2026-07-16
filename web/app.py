@@ -1,4 +1,4 @@
-"""Flask ????"""
+﻿"""Flask 应用工厂"""
 
 import os
 import sys
@@ -18,7 +18,7 @@ def create_app():
 
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
-    login_manager.login_message = "????"
+    login_manager.login_message = "请先登录"
 
     init_auth_db()
 

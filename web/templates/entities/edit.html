@@ -1,66 +1,66 @@
 {% extends "base.html" %}
-{% block title %}??????{% endblock %}
+{% block title %}编辑企业{% endblock %}
 {% block content %}
 <div class="page-header">
-    <h1>??????</h1>
+    <h1>编辑企业</h1>
 </div>
 
 <div class="card">
     <form method="POST" action="{{ url_for('entities.edit_entity', entity_id=entity.id) }}" class="form-grid">
         <div class="form-group">
-            <label>????????</label>
+            <label>统一社会信用代码</label>
             <input type="text" name="credit_code" value="{{ entity.credit_code }}" readonly>
         </div>
         <div class="form-group">
-            <label>???? *</label>
+            <label>企业名称 *</label>
             <input type="text" name="name" value="{{ entity.name }}" required>
         </div>
         <div class="form-group">
-            <label>????</label>
+            <label>企业类型</label>
             <select name="entity_type">
-                {% for t in ["?????", "??????", "??????", "??"] %}
+                {% for t in ["个体工商户", "有限责任公司", "股份有限公司", "其他"] %}
                 <option value="{{ t }}" {% if entity.entity_type == t %}selected{% endif %}>{{ t }}</option>
                 {% endfor %}
             </select>
         </div>
         <div class="form-group">
-            <label>?????</label>
+            <label>纳税人类型</label>
             <select name="taxpayer_type">
-                <option value="small_scale" {% if entity.taxpayer_type == "small_scale" %}selected{% endif %}>??????</option>
-                <option value="general" {% if entity.taxpayer_type == "general" %}selected{% endif %}>?????</option>
+                <option value="small_scale" {% if entity.taxpayer_type == "small_scale" %}selected{% endif %}>小规模纳税人</option>
+                <option value="general" {% if entity.taxpayer_type == "general" %}selected{% endif %}>一般纳税人</option>
             </select>
         </div>
         <div class="form-group">
-            <label>?????</label>
+            <label>法定代表人</label>
             <input type="text" name="legal_representative" value="{{ entity.legal_representative or '' }}">
         </div>
         <div class="form-group">
-            <label>??</label>
+            <label>省份</label>
             <input type="text" name="province" value="{{ entity.province or '' }}">
         </div>
         <div class="form-group">
-            <label>??</label>
+            <label>城市</label>
             <input type="text" name="city" value="{{ entity.city or '' }}">
         </div>
         <div class="form-group">
-            <label>??????</label>
+            <label>主管税务机关</label>
             <input type="text" name="tax_authority" value="{{ entity.tax_authority or '' }}">
         </div>
         <div class="form-group">
-            <label>???????</label>
+            <label>登录地址</label>
             <input type="url" name="login_url" value="{{ entity.login_url or '' }}">
         </div>
         <div class="form-group">
-            <label>????</label>
-            <input type="text" name="business_status" value="{{ entity.business_status or '??' }}">
+            <label>营业状态</label>
+            <input type="text" name="business_status" value="{{ entity.business_status or '正常' }}">
         </div>
         <div class="form-group">
-            <label>?????</label>
-            <input type="text" name="taxpayer_status" value="{{ entity.taxpayer_status or '??' }}">
+            <label>纳税人状态</label>
+            <input type="text" name="taxpayer_status" value="{{ entity.taxpayer_status or '正常' }}">
         </div>
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary">????</button>
-            <a href="{{ url_for('entities.list_entities') }}" class="btn">??</a>
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="{{ url_for('entities.list_entities') }}" class="btn">取消</a>
         </div>
     </form>
 </div>

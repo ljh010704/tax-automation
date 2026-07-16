@@ -1,67 +1,67 @@
 {% extends "base.html" %}
-{% block title %}??????{% endblock %}
+{% block title %}添加企业{% endblock %}
 {% block content %}
 <div class="page-header">
-    <h1>??????</h1>
+    <h1>添加企业</h1>
 </div>
 
 <div class="card">
     <form method="POST" action="{{ url_for('entities.add_entity') }}" class="form-grid">
         <div class="form-group">
-            <label>???????? *</label>
-            <input type="text" name="credit_code" required maxlength="18" placeholder="18?????????">
+            <label>统一社会信用代码 *</label>
+            <input type="text" name="credit_code" required maxlength="18" placeholder="18位统一社会信用代码">
         </div>
         <div class="form-group">
-            <label>???? *</label>
-            <input type="text" name="name" required placeholder="???????">
+            <label>企业名称 *</label>
+            <input type="text" name="name" required placeholder="请输入企业名称">
         </div>
         <div class="form-group">
-            <label>????</label>
+            <label>企业类型</label>
             <select name="entity_type">
-                <option value="?????" selected>?????</option>
-                <option value="??????">??????</option>
-                <option value="??????">??????</option>
-                <option value="??">??</option>
+                <option value="个体工商户" selected>个体工商户</option>
+                <option value="有限责任公司">有限责任公司</option>
+                <option value="股份有限公司">股份有限公司</option>
+                <option value="其他">其他</option>
             </select>
         </div>
         <div class="form-group">
-            <label>?????</label>
+            <label>纳税人类型</label>
             <select name="taxpayer_type">
-                <option value="small_scale" selected>??????</option>
-                <option value="general">?????</option>
+                <option value="small_scale" selected>小规模纳税人</option>
+                <option value="general">一般纳税人</option>
             </select>
         </div>
         <div class="form-group">
-            <label>?????</label>
-            <input type="text" name="legal_representative" placeholder="???????">
+            <label>法定代表人</label>
+            <input type="text" name="legal_representative" placeholder="请输入法定代表人">
         </div>
         <div class="form-group">
-            <label>??</label>
-            <input type="text" name="province" placeholder="?????">
+            <label>省份</label>
+            <input type="text" name="province" placeholder="请输入省份">
         </div>
         <div class="form-group">
-            <label>??</label>
-            <input type="text" name="city" placeholder="?????">
+            <label>城市</label>
+            <input type="text" name="city" placeholder="请输入城市">
         </div>
         <div class="form-group">
-            <label>??????</label>
-            <input type="text" name="tax_authority" placeholder="????????XX???">
+            <label>主管税务机关</label>
+            <input type="text" name="tax_authority" placeholder="请输入主管税务机关名称">
         </div>
         <div class="form-group">
-            <label>???????</label>
+            <label>登录地址</label>
             <input type="url" name="login_url" placeholder="https://...">
         </div>
         <div class="form-group">
-            <label>????</label>
-            <input type="text" name="business_status" value="??">
+            <label>营业状态</label>
+            <input type="text" name="business_status" value="正常">
         </div>
         <div class="form-group">
-            <label>?????</label>
-            <input type="text" name="taxpayer_status" value="??">
+            <label>纳税人状态</label>
+            <input type="text" name="taxpayer_status" value="正常">
         </div>
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary">??</button>
-            <a href="{{ url_for('entities.list_entities') }}" class="btn">??</a>
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="{{ url_for('entities.list_entities') }}" class="btn">取消</a>
         </div>
     </form>
 </div>

@@ -1,27 +1,27 @@
 {% extends "base.html" %}
-{% block title %}????{% endblock %}
+{% block title %}税务管理{% endblock %}
 {% block content %}
 <div class="page-header">
-    <h1>????</h1>
+    <h1>税务管理</h1>
 </div>
 
 <div class="card">
-    <h2>??????</h2>
+    <h2>企业税务概览</h2>
     {% if entities %}
     <table class="table">
-        <thead><tr><th>????</th><th>??</th><th>??</th></tr></thead>
+        <thead><tr><th>企业名称</th><th>类型</th><th>操作</th></tr></thead>
         <tbody>
         {% for e in entities %}
             <tr>
                 <td>{{ e.name }}</td>
                 <td>{{ e.entity_type }}</td>
-                <td><a href="{{ url_for('tax.calculator', entity_id=e.id) }}" class="btn btn-sm btn-primary">????</a></td>
+                <td><a href="{{ url_for('tax.calculator', entity_id=e.id) }}" class="btn btn-sm btn-primary">计算器</a></td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
     {% else %}
-    <p class="text-muted">?? <a href="{{ url_for('entities.add_entity') }}">??????</a></p>
+    <p class="text-muted">暂无企业 <a href="{{ url_for('entities.add_entity') }}">添加企业</a></p>
     {% endif %}
 </div>
 {% endblock %}

@@ -1,55 +1,55 @@
 {% extends "base.html" %}
-{% block title %}???? - {{ entity.name }}{% endblock %}
+{% block title %}税务计算器 - {{ entity.name }}{% endblock %}
 {% block content %}
 <div class="page-header">
-    <h1>{{ entity.name }} - ????</h1>
-    <a href="{{ url_for('tax.dashboard') }}" class="btn">??</a>
+    <h1>{{ entity.name }} - 税务计算器</h1>
+    <a href="{{ url_for('tax.dashboard') }}" class="btn">返回</a>
 </div>
 
 <div class="card">
     <div class="tabs">
-        <button class="tab-btn active" onclick="showTab('tab-quarterly')">????</button>
-        <button class="tab-btn" onclick="showTab('tab-stamp')">???</button>
-        <button class="tab-btn" onclick="showTab('tab-social')">????</button>
-        <button class="tab-btn" onclick="showTab('tab-annual')">????</button>
+        <button class="tab-btn active" onclick="showTab('tab-quarterly')">增值税</button>
+        <button class="tab-btn" onclick="showTab('tab-stamp')">印花税</button>
+        <button class="tab-btn" onclick="showTab('tab-social')">社保</button>
+        <button class="tab-btn" onclick="showTab('tab-annual')">企业所得税</button>
     </div>
 
-    <!-- ???? -->
+    <!-- 增值税 -->
     <div id="tab-quarterly" class="tab-content active">
         <form id="form-quarterly" class="tax-form">
-            <div class="form-group"><label>????</label><input type="number" name="quarterly_income" step="0.01" required></div>
-            <div class="form-group"><label>?????</label><select name="taxpayer_type"><option value="small_scale">??????</option><option value="general">?????</option></select></div>
-            <button type="submit" class="btn btn-primary">??</button>
+            <div class="form-group"><label>季度收入</label><input type="number" name="quarterly_income" step="0.01" required></div>
+            <div class="form-group"><label>纳税人类型</label><select name="taxpayer_type"><option value="small_scale">小规模纳税人</option><option value="general">一般纳税人</option></select></div>
+            <button type="submit" class="btn btn-primary">计算</button>
         </form>
         <div id="result-quarterly" class="result-box" style="display:none;"></div>
     </div>
 
-    <!-- ??? -->
+    <!-- 印花税 -->
     <div id="tab-stamp" class="tab-content">
         <form id="form-stamp" class="tax-form">
-            <div class="form-group"><label>????</label><input type="number" name="quarterly_income" step="0.01" required></div>
-            <div class="form-group"><label>????</label><input type="number" name="paid_capital" step="0.01" value="0"></div>
-            <button type="submit" class="btn btn-primary">??</button>
+            <div class="form-group"><label>季度收入</label><input type="number" name="quarterly_income" step="0.01" required></div>
+            <div class="form-group"><label>实收资本</label><input type="number" name="paid_capital" step="0.01" value="0"></div>
+            <button type="submit" class="btn btn-primary">计算</button>
         </form>
         <div id="result-stamp" class="result-box" style="display:none;"></div>
     </div>
 
-    <!-- ???? -->
+    <!-- 社保 -->
     <div id="tab-social" class="tab-content">
         <form id="form-social" class="tax-form">
-            <div class="form-group"><label>?????</label><input type="number" name="monthly_base" step="0.01" required></div>
-            <button type="submit" class="btn btn-primary">??</button>
+            <div class="form-group"><label>月缴费基数</label><input type="number" name="monthly_base" step="0.01" required></div>
+            <button type="submit" class="btn btn-primary">计算</button>
         </form>
         <div id="result-social" class="result-box" style="display:none;"></div>
     </div>
 
-    <!-- ???? -->
+    <!-- 企业所得税 -->
     <div id="tab-annual" class="tab-content">
         <form id="form-annual" class="tax-form">
-            <div class="form-group"><label>????</label><input type="number" name="annual_income" step="0.01" required></div>
-            <div class="form-group"><label>????</label><input type="number" name="annual_expenses" step="0.01" value="0"></div>
-            <div class="form-group"><label>?????</label><input type="number" name="quarterly_prepaid" step="0.01" value="0"></div>
-            <button type="submit" class="btn btn-primary">??</button>
+            <div class="form-group"><label>年收入</label><input type="number" name="annual_income" step="0.01" required></div>
+            <div class="form-group"><label>年支出</label><input type="number" name="annual_expenses" step="0.01" value="0"></div>
+            <div class="form-group"><label>季度预缴</label><input type="number" name="quarterly_prepaid" step="0.01" value="0"></div>
+            <button type="submit" class="btn btn-primary">计算</button>
         </form>
         <div id="result-annual" class="result-box" style="display:none;"></div>
     </div>
@@ -76,7 +76,7 @@ function submitTax(formId, resultId, calcType) {
     }).then(r => r.json()).then(d => {
         const box = document.getElementById(resultId);
         box.style.display = "block";
-        box.textContent = d.result || d.error || "????";
+        box.textContent = d.result || d.error || "计算失败";
     });
 }
 

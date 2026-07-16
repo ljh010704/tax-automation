@@ -3,23 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}??????{% endblock %}</title>
+    <title>{% block title %}税务自动化系统{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     {% if current_user.is_authenticated %}
     <nav class="navbar">
-        <div class="nav-brand">??????</div>
+        <div class="nav-brand">税务自动化系统</div>
         <ul class="nav-menu">
-            <li><a href="{{ url_for('main.dashboard') }}">??</a></li>
-            <li><a href="{{ url_for('entities.list_entities') }}">????</a></li>
-            <li><a href="{{ url_for('bookkeeping.index') }}">??</a></li>
-            <li><a href="{{ url_for('tax.dashboard') }}">????</a></li>
-            <li><a href="{{ url_for('tax.declaration_page') }}">??</a></li>
+            <li><a href="{{ url_for('main.dashboard') }}">首页</a></li>
+            <li><a href="{{ url_for('entities.list_entities') }}">企业管理</a></li>
+            <li><a href="{{ url_for('bookkeeping.index') }}">记账</a></li>
+            <li><a href="{{ url_for('tax.dashboard') }}">税务管理</a></li>
+            <li><a href="{{ url_for('tax.declaration_page') }}">申报</a></li>
         </ul>
         <div class="nav-user">
             <span>{{ current_user.username }}</span>
-            <a href="{{ url_for('auth.logout') }}" class="btn-logout">??</a>
+            <a href="{{ url_for('auth.logout') }}" class="btn-logout">退出</a>
         </div>
     </nav>
     {% endif %}

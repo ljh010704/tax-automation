@@ -1,15 +1,15 @@
 {% extends "base.html" %}
-{% block title %}????{% endblock %}
+{% block title %}纳税申报{% endblock %}
 {% block content %}
 <div class="page-header">
-    <h1>????</h1>
+    <h1>纳税申报</h1>
 </div>
 
 <div class="card">
-    <h2>???? - {{ now.year }}?</h2>
+    <h2>申报概览 - {{ now.year }}年</h2>
     {% if entities %}
     <table class="table">
-        <thead><tr><th>????</th><th>??</th><th>???</th><th>???</th><th>??</th></tr></thead>
+        <thead><tr><th>企业名称</th><th>年份</th><th>已申报</th><th>待申报</th><th>操作</th></tr></thead>
         <tbody>
         {% for e in entities %}
             {% set records = records_by_entity[e.id] %}
@@ -20,13 +20,13 @@
                 <td>{{ now.year }}</td>
                 <td><span class="badge badge-success">{{ submitted }}</span></td>
                 <td><span class="badge badge-warning">{{ pending }}</span></td>
-                <td><a href="{{ url_for('entities.edit_entity', entity_id=e.id) }}" class="btn btn-sm">??</a></td>
+                <td><a href="{{ url_for('entities.edit_entity', entity_id=e.id) }}" class="btn btn-sm">编辑</a></td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
     {% else %}
-    <p class="text-muted">??????</p>
+    <p class="text-muted">暂无企业数据</p>
     {% endif %}
 </div>
 {% endblock %}

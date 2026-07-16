@@ -1,4 +1,4 @@
-"""??????"""
+"""用户认证模块"""
 
 import sqlite3
 import os
@@ -9,7 +9,7 @@ from flask import Flask, Blueprint, render_template, redirect, url_for, request,
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 
 
-# ======== ???? ========
+# ======== 用户模型 ========
 
 class User(UserMixin):
     def __init__(self, id, username, role="user"):
@@ -22,7 +22,7 @@ class User(UserMixin):
         return self.role == "admin"
 
 
-# ======== ????? ========
+# ======== 数据库操作 ========
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "web.db")
 
@@ -96,7 +96,7 @@ def get_all_users():
     return [dict(r) for r in rows]
 
 
-# ======== Flask ?? ========
+# ======== Flask 认证 ========
 
 login_manager = LoginManager()
 auth_bp = Blueprint("auth", __name__)
@@ -106,7 +106,7 @@ def load_user(user_id):
     return get_user_by_id(int(user_id))
 
 
-# ======== ?? ========
+# ======== 路由 ========
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
@@ -117,7 +117,7 @@ def login():
         if user:
             login_user(user, remember=True)
             return redirect(url_for("main.dashboard"))
-        flash("????????", "error")
+        flash("用户名或密码错误", "error")
     return render_template("login.html")
 
 @auth_bp.route("/register", methods=["GET", "POST"])
@@ -127,16 +127,16 @@ def register():
         password = request.form.get("password", "")
         password2 = request.form.get("password2", "")
         if not username or not password:
-            flash("??????????", "error")
+            flash("用户名和密码不能为空", "error")
         elif password != password2:
-            flash("???????", "error")
+            flash("两次密码不一致", "error")
         elif len(password) < 6:
-            flash("???? 6 ?", "error")
+            flash("密码至少 6 位", "error")
         elif create_user(username, password):
-            flash("????????", "success")
+            flash("注册成功，请登录", "success")
             return redirect(url_for("auth.login"))
         else:
-            flash("??????", "error")
+            flash("用户名已存在", "error")
     return render_template("register.html")
 
 @auth_bp.route("/logout")
@@ -149,7 +149,7 @@ def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if not current_user.is_authenticated or not current_user.is_admin:
-            flash("???????", "error")
+            flash("需要管理员权限", "error")
             return redirect(url_for("main.dashboard"))
         return f(*args, **kwargs)
     return decorated

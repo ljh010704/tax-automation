@@ -1,4 +1,4 @@
-"""?? / ??"""
+"""主页 / 仪表盘"""
 
 from datetime import datetime
 from flask import Blueprint, render_template, g
@@ -19,27 +19,27 @@ def dashboard():
     month = now.month
     year = now.year
 
-    compliance_items.append({"period": "??", "item": "?????1-15??", "due": month in [1,2,3,4,5,6,7,8,9,10,11,12]})
-    compliance_items.append({"period": "??", "item": "???????1-15??", "due": month in [1,2,3,4,5,6,7,8,9,10,11,12]})
+    compliance_items.append({"period": "按月", "item": "增值税申报1-15日", "due": month in [1,2,3,4,5,6,7,8,9,10,11,12]})
+    compliance_items.append({"period": "按月", "item": "个人所得税申报1-15日", "due": month in [1,2,3,4,5,6,7,8,9,10,11,12]})
 
     if month in [1, 4, 7, 10]:
-        compliance_items.append({"period": "??", "item": "??????1-15??", "due": True})
-        compliance_items.append({"period": "??", "item": "??????1-15??", "due": True})
-        compliance_items.append({"period": "??", "item": "?????????1-15??", "due": True})
-        compliance_items.append({"period": "??", "item": "??????1-15??", "due": True})
+        compliance_items.append({"period": "按月", "item": "企业所得税申报1-15日", "due": True})
+        compliance_items.append({"period": "按月", "item": "印花税申报1-15日", "due": True})
+        compliance_items.append({"period": "按月", "item": "房产税/土地使用税申报1-15日", "due": True})
+        compliance_items.append({"period": "按月", "item": "环境保护税申报1-15日", "due": True})
     else:
-        compliance_items.append({"period": "??", "item": "???/???/???????? 1-15 ??", "due": False})
-        compliance_items.append({"period": "??", "item": "????????? 1-15 ??", "due": False})
+        compliance_items.append({"period": "按月", "item": "印花税/房产税/土地使用税申报1-15日", "due": False})
+        compliance_items.append({"period": "按月", "item": "环境保护税申报1-15日", "due": False})
 
     if month == 1:
-        compliance_items.append({"period": "??", "item": "???????????1-31??", "due": True})
+        compliance_items.append({"period": "按年", "item": "企业所得税汇算清缴申报1-31日", "due": True})
     else:
-        compliance_items.append({"period": "??", "item": "???????1??", "due": False})
+        compliance_items.append({"period": "按年", "item": "企业所得税汇算清缴申报1日", "due": False})
 
     if month in [1,2,3]:
-        compliance_items.append({"period": "??", "item": "?????1-6??", "due": True})
+        compliance_items.append({"period": "按季", "item": "企业所得税季度预缴1-6日", "due": True})
     else:
-        compliance_items.append({"period": "??", "item": "?????1-6??", "due": False})
+        compliance_items.append({"period": "按季", "item": "企业所得税季度预缴1-6日", "due": False})
 
     return render_template("dashboard.html",
         entities=entities,

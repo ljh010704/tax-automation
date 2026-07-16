@@ -1,0 +1,32 @@
+﻿[Unit]
+Description=Tax Automation Web Application
+After=network.target
+
+[Service]
+Type=simple
+User=taxapp
+Group=taxapp
+WorkingDirectory=/opt/tax-automation
+Environment="PATH=/opt/tax-automation/venv/bin"
+EnvironmentFile=/opt/tax-automation/.env
+ExecStart=/opt/tax-automation/venv/bin/gunicorn \
+    --config /opt/tax-automation/deploy/gunicorn/gunicorn.conf.py \
+    --pid /var/run/tax-automation/tax-automation.pid \
+    run_web:app
+
+Restart=always
+RestartSec=5
+
+# 安全设置
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/tax-automation/data /var/log/tax-automation
+
+# 创建运行时目录
+RuntimeDirectory=tax-automation
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target

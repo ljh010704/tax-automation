@@ -1,34 +1,34 @@
 {% extends "base.html" %}
-{% block title %}?? - {{ entity.name }}{% endblock %}
+{% block title %}报表 - {{ entity.name }}{% endblock %}
 {% block content %}
 <div class="page-header">
-    <h1>{{ entity.name }} - {{ year }}????</h1>
-    <a href="{{ url_for('bookkeeping.entity_transactions', entity_id=entity.id) }}" class="btn">????</a>
+    <h1>{{ entity.name }} - {{ year }}年度报表</h1>
+    <a href="{{ url_for('bookkeeping.entity_transactions', entity_id=entity.id) }}" class="btn">账务</a>
 </div>
 
 <div class="card-grid">
     <div class="card stat-card">
         <div class="stat-value">{{ "%.0f"|format(total_income) }}</div>
-        <div class="stat-label">?????</div>
+        <div class="stat-label">收入合计</div>
     </div>
     <div class="card stat-card">
         <div class="stat-value">{{ "%.0f"|format(total_expenses) }}</div>
-        <div class="stat-label">?????</div>
+        <div class="stat-label">支出合计</div>
     </div>
     <div class="card stat-card">
         <div class="stat-value">{{ "%.0f"|format(profit) }}</div>
-        <div class="stat-label">????</div>
+        <div class="stat-label">利润</div>
     </div>
 </div>
 
 <div class="card">
-    <h2>????</h2>
+    <h2>月度明细</h2>
     <table class="table">
-        <thead><tr><th>??</th><th>??</th><th>??</th><th>??</th></tr></thead>
+        <thead><tr><th>月份</th><th>收入</th><th>支出</th><th>利润</th></tr></thead>
         <tbody>
         {% for m in range(1, 13) %}
             <tr>
-                <td>{{ m }}?</td>
+                <td>{{ m }}月</td>
                 <td>{{ "%.2f"|format(monthly_breakdown[m].total_income) }}</td>
                 <td>{{ "%.2f"|format(monthly_breakdown[m].total_expense) }}</td>
                 <td>{{ "%.2f"|format(monthly_breakdown[m].profit) }}</td>
