@@ -44,6 +44,25 @@ def api_lookup():
     except Exception as e:
         return jsonify({"error": f"查询失败: {str(e)}"}), 500
 
+
+
+@entities_bp.route("/api/debug", methods=["POST"])
+@login_required
+def api_debug():
+    """调试查询：返回详细步骤信息"""
+    data = request.get_json() or {}
+    credit_code = (data.get("credit_code", "") or "").strip().upper()
+
+    if not BusinessQueryOffline.validate_credit_code(credit_code):
+        return jsonify({"error": "统一社会信用代码格式不正确"}), 400
+
+    try:
+        from core.business_query import debug_query
+        steps = debug_query(credit_code)
+        return jsonify({"success": True, "steps": steps})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @entities_bp.route("/add", methods=["GET", "POST"])
 @login_required
 def add_entity():

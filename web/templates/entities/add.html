@@ -13,6 +13,7 @@
             <div class="input-with-btn">
                 <input type="text" name="credit_code" id="credit_code" required maxlength="18" placeholder="18位统一社会信用代码" autocomplete="off">
                 <button type="button" class="btn btn-query" id="btnLookup" onclick="lookupEnterprise()" disabled>
+                    <button type="button" class="btn btn-debug" id="btnDebug" onclick="debugQuery()" title="调试查询">🐛</button>
                     <span id="lookupText">查询</span>
                     <span id="lookupSpinner" class="spinner hidden"></span>
                 </button>
@@ -177,5 +178,31 @@ async function lookupEnterprise() {
         setLoading(false);
     }
 }
+
+async function debugQuery() {
+    const code = creditInput.value.trim().toUpperCase();
+    if (code.length !== 18) {
+        showMsg('请输入18位统一社会信用代码', 'warning');
+        return;
+    }
+    showMsg('正在调试查询...', 'info');
+    try {
+        const resp = await fetch('{{ url_for("entities.api_debug") }}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({credit_code: code})
+        });
+        const data = await resp.json();
+        if (data.steps) {
+            console.log('Debug steps:', data.steps);
+            showMsg('调试结果：' + data.steps.join(' | '), 'info');
+        } else {
+            showMsg(data.error || '调试失败', 'error');
+        }
+    } catch (err) {
+        showMsg('调试失败: ' + err.message, 'error');
+    }
+}
+
 </script>
 {% endblock %}

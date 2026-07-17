@@ -608,3 +608,94 @@ class BusinessQueryOffline:
             return False
         pattern = r'^[0-9A-Z]{18}$'
         return bool(re.match(pattern, credit_code))
+
+
+def debug_query(credit_code: str):
+    """调试查询：返回详细步骤信息"""
+    import asyncio
+    steps = []
+
+    async def _run():
+        from playwright.async_api import async_playwright
+        import platform
+
+        is_linux = platform.system() == "Linux"
+        headless = is_linux or os.environ.get("PLAYWRIGHT_HEADLESS", "0") == "1"
+        steps.append(f"OS: {platform.system()}, headless: {headless}")
+
+        playwright = await async_playwright().start()
+
+        chrome_paths = []
+        if platform.system() == "Linux":
+            chrome_paths = ["/usr/bin/google-chrome", "/usr/bin/chromium-browser", "/usr/bin/chromium", "/snap/bin/chrome"]
+        chrome_path = None
+        for p in chrome_paths:
+            if os.path.exists(p):
+                chrome_path = p
+                break
+
+        user_data_dir = os.path.join(os.path.dirname(__file__), "..", "data", "browser_data")
+        os.makedirs(user_data_dir, exist_ok=True)
+
+        args = ["--disable-blink-features=AutomationControlled", "--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
+
+        if chrome_path:
+            steps.append(f"Chrome: {chrome_path}")
+            context = await playwright.chromium.launch_persistent_context(
+                user_data_dir, headless=headless, executable_path=chrome_path,
+                viewport={"width": 1280, "height": 800}, args=args)
+        else:
+            steps.append("Chrome: Playwright bundled")
+            context = await playwright.chromium.launch_persistent_context(
+                user_data_dir, headless=headless,
+                viewport={"width": 1280, "height": 800}, args=args)
+
+        page = context.pages[0] if context.pages else await context.new_page()
+        await page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined});")
+
+        search_url = f"https://www.tianyancha.com/search?key={credit_code}"
+        steps.append(f"Navigating to: {search_url}")
+        await page.goto(search_url, wait_until="domcontentloaded", timeout=60000)
+        await page.wait_for_timeout(5000)
+
+        current_url = page.url
+        steps.append(f"Current URL: {current_url}")
+
+        is_login = any(kw in current_url.lower() for kw in ["/login", "/register", "login?", "register?"])
+        steps.append(f"Is login page: {is_login}")
+
+        if is_login and headless:
+            steps.append("BLOCKED: Login required in headless mode")
+            await context.close()
+            await playwright.stop()
+            return steps
+
+        # Get page content summary
+        content_text = await page.content()
+        steps.append(f"Page content length: {len(content_text)}")
+
+        # Check for anti-bot
+        if "验证码" in content_text or "captcha" in content_text.lower():
+            steps.append("BLOCKED: CAPTCHA/verification detected")
+            await context.close()
+            await playwright.stop()
+            return steps
+
+        # Check for company links
+        links = await page.query_selector_all('a[href*="/company/"]')
+        steps.append(f"Company links found: {len(links)}")
+
+        # Try to get title
+        title = await page.title()
+        steps.append(f"Page title: {title}")
+
+        # Take screenshot
+        screenshot_path = os.path.join(os.path.dirname(__file__), "..", "debug_screenshot.png")
+        await page.screenshot(path=screenshot_path)
+        steps.append(f"Screenshot saved: {screenshot_path}")
+
+        await context.close()
+        await playwright.stop()
+        return steps
+
+    return asyncio.run(_run())
