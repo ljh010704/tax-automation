@@ -1,34 +1,67 @@
-{
-  "version": "1.0.0",
-  "app_name": "税务自动申报系统",
-  "database": {
-    "path": "data/entities.db"
-  },
-  "tax_rules": {
-    "vat": {
-      "small_scale_rate": 0.03,
-      "quarterly_threshold": 300000,
-      "general_rate": 0.13
-    },
-    "surtax": {
-      "city_maintenance_rate": 0.07,
-      "education_surcharge_rate": 0.03,
-      "local_education_surcharge_rate": 0.02
-    },
-    "iit_business_income": {
-      "brackets": [
-        {"lower": 0, "upper": 30000, "rate": 0.05, "deduction": 0},
-        {"lower": 30000, "upper": 90000, "rate": 0.10, "deduction": 1500},
-        {"lower": 90000, "upper": 300000, "rate": 0.20, "deduction": 10500},
-        {"lower": 300000, "upper": 500000, "rate": 0.30, "deduction": 40500},
-        {"lower": 500000, "upper": 999999999, "rate": 0.35, "deduction": 65500}
-      ]
-    }
-  },
-  "automation": {
-    "browser": "playwright",
-    "headless": false,
-    "timeout": 30000,
-    "sites": {}
-  }
+﻿{
+    "version":  "1.0.0",
+    "app_name":  "税务自动申报系统",
+    "database":  {
+                     "path":  "data/entities.db"
+                 },
+    "tax_rules":  {
+                      "vat":  {
+                                  "small_scale_rate":  0.03,
+                                  "quarterly_threshold":  300000,
+                                  "general_rate":  0.13
+                              },
+                      "surtax":  {
+                                     "city_maintenance_rate":  0.07,
+                                     "education_surcharge_rate":  0.03,
+                                     "local_education_surcharge_rate":  0.02
+                                 },
+                      "iit_business_income":  {
+                                                  "brackets":  [
+                                                                   {
+                                                                       "lower":  0,
+                                                                       "upper":  30000,
+                                                                       "rate":  0.05,
+                                                                       "deduction":  0
+                                                                   },
+                                                                   {
+                                                                       "lower":  30000,
+                                                                       "upper":  90000,
+                                                                       "rate":  0.10,
+                                                                       "deduction":  1500
+                                                                   },
+                                                                   {
+                                                                       "lower":  90000,
+                                                                       "upper":  300000,
+                                                                       "rate":  0.20,
+                                                                       "deduction":  10500
+                                                                   },
+                                                                   {
+                                                                       "lower":  300000,
+                                                                       "upper":  500000,
+                                                                       "rate":  0.30,
+                                                                       "deduction":  40500
+                                                                   },
+                                                                   {
+                                                                       "lower":  500000,
+                                                                       "upper":  999999999,
+                                                                       "rate":  0.35,
+                                                                       "deduction":  65500
+                                                                   }
+                                                               ]
+                                              }
+                  },
+    "automation":  {
+                       "browser":  "playwright",
+                       "headless":  false,
+                       "timeout":  30000,
+                       "sites":  {
+
+                                 }
+                   },
+    "auto_declaration":  {
+                             "screenshot_dir":  "data/screenshots",
+                             "log_dir":  "data/logs",
+                             "default_province":  "fujian",
+                             "enabled":  true
+                         }
 }

@@ -20,6 +20,7 @@ from gui.entity_manager import EntityManagerWindow
 from gui.income_input import IncomeInputWindow
 from gui.tax_calculator_gui import TaxCalculatorWindow
 from gui.bookkeeping import BookkeepingWindow
+from gui.auto_declaration import AutoDeclarationWindow
 
 ctk.set_appearance_mode("light")
 ctk.set_default_color_theme("blue")
@@ -69,6 +70,7 @@ class MainWindow:
             ("记账", self._open_bookkeeping),
             ("快速收入录入", self._open_income_input),
             ("税额计算器", self._open_tax_calculator),
+            ("自动报税", self._open_auto_declaration),
         ]
         self.nav_buttons = {}
         for text, cmd in nav_items:
