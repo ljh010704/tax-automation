@@ -232,7 +232,7 @@ class BusinessQuery:
                     # 验证是否真正进入了详情页，否则直接导航
                     if "/company/" not in self.page.url and href:
                         print(f"点击未能跳转，直接导航: {href}")
-                        await self.page.goto(href, wait_until="domcontentloaded", timeout=30000)
+                        await self.page.goto(href, wait_until="commit", timeout=60000)
                         await self.page.wait_for_timeout(3000)
 
                     await self.page.screenshot(path=os.path.join(os.path.dirname(__file__), "..", "company_detail.png"))

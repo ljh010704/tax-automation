@@ -9,6 +9,7 @@
         <h1>税务自动化系统</h1>
         <p class="auth-subtitle">请登录您的账户</p>
         <form method="POST" action="{{ url_for('auth.login') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group">
                 <label>用户名</label>
                 <input type="text" name="username" required autofocus placeholder="请输入用户名">

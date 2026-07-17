@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}税务自动化系统{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>">
 </head>
 <body class="{% block body_class %}{% endblock %}">
     {% block body_before %}{% endblock %}
@@ -30,10 +31,10 @@
                 </a>
                 <div class="sidebar-section">税务服务</div>
                 <a href="{{ url_for('tax.dashboard') }}" class="sidebar-link {% if request.endpoint and request.endpoint.startswith('tax.') and request.endpoint != 'tax.declaration_page' %}active{% endif %}">
-                    <span class="icon">📋</span><span>税务概览</span>
+                    <span class="icon">📥</span><span>税务概览</span>
                 </a>
                 <a href="{{ url_for('tax.declaration_page') }}" class="sidebar-link {% if request.endpoint and request.endpoint == 'tax.declaration_page' %}active{% endif %}">
-                    <span class="icon">📝</span><span>纳税申报</span>
+                    <span class="icon">📑</span><span>纳税申报</span>
                 </a>
             </nav>
             <div class="sidebar-footer">

@@ -1,5 +1,6 @@
 """Tax calculator routes for the Flask web app."""
 
+import logging
 from datetime import datetime
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
@@ -7,7 +8,9 @@ from flask_login import login_required, current_user
 
 from core.data_manager import DataManager
 from core.tax_calculator import TaxCalculator
+from web.csrf import csrf_required
 
+logger = logging.getLogger(__name__)
 
 tax_bp = Blueprint("tax", __name__)
 
@@ -20,6 +23,30 @@ def _dm():
 
 def _calc():
     return TaxCalculator()
+
+
+def _validate_amount(value, field_name="金额"):
+    """Validate a monetary amount: must be finite and non-negative."""
+    try:
+        val = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"{field_name}必须是有效数字")
+    if val != val or val == float('inf') or val == float('-inf'):  # NaN/Inf check
+        raise ValueError(f"{field_name}必须是有限数字")
+    if val < 0:
+        raise ValueError(f"{field_name}不能为负数")
+    return val
+
+
+def _validate_quarter(quarter):
+    """Validate quarter is 1-4."""
+    try:
+        q = int(quarter)
+    except (TypeError, ValueError):
+        raise ValueError("季度必须是1-4的整数")
+    if q < 1 or q > 4:
+        raise ValueError("季度必须在1到4之间")
+    return q
 
 
 # ---------------------------------------------------------------------------
@@ -43,11 +70,12 @@ def dashboard():
 # ---------------------------------------------------------------------------
 @tax_bp.route("/calculator/<int:entity_id>", methods=["GET", "POST"])
 @login_required
+@csrf_required
 def calculator(entity_id):
     dm = _dm()
     entity = dm.get_entity(entity_id)
     if entity is None:
-        flash("Entity not found.", "error")
+        flash("企业不存在或无权限访问", "error")
         return redirect(url_for("tax.dashboard"))
 
     result = None
@@ -59,17 +87,17 @@ def calculator(entity_id):
 
         try:
             if calc_type == "quarterly":
-                quarterly_income = float(request.form.get("quarterly_income", 0))
-                taxpayer_type = request.form.get("taxpayer_type", "small_scale")
+                quarterly_income = _validate_amount(request.form.get("quarterly_income", 0), "季度收入")
+                quarterly_expenses = _validate_amount(request.form.get("quarterly_expenses", 0), "季度费用")
                 result = calculator_.calculate_all_quarterly(
                     quarterly_income=quarterly_income,
-                    taxpayer_type=taxpayer_type,
+                    quarterly_expenses=quarterly_expenses,
                 )
                 active_tab = "quarterly"
 
             elif calc_type == "stamp":
-                quarterly_income = float(request.form.get("quarterly_income", 0))
-                paid_capital = float(request.form.get("paid_capital", 0))
+                quarterly_income = _validate_amount(request.form.get("quarterly_income", 0), "季度收入")
+                paid_capital = _validate_amount(request.form.get("paid_capital", 0), "实收资本")
                 result = calculator_.calculate_stamp_tax(
                     quarterly_income=quarterly_income,
                     paid_capital=paid_capital,
@@ -77,16 +105,16 @@ def calculator(entity_id):
                 active_tab = "stamp"
 
             elif calc_type == "social":
-                monthly_base = float(request.form.get("monthly_base", 0))
+                monthly_base = _validate_amount(request.form.get("monthly_base", 0), "月缴费基数")
                 result = calculator_.calculate_social_security(
                     monthly_base=monthly_base,
                 )
                 active_tab = "social"
 
             elif calc_type == "annual":
-                annual_income = float(request.form.get("annual_income", 0))
-                annual_expenses = float(request.form.get("annual_expenses", 0))
-                quarterly_prepaid = float(request.form.get("quarterly_prepaid", 0))
+                annual_income = _validate_amount(request.form.get("annual_income", 0), "年度收入")
+                annual_expenses = _validate_amount(request.form.get("annual_expenses", 0), "年度费用")
+                quarterly_prepaid = _validate_amount(request.form.get("quarterly_prepaid", 0), "季度预缴")
                 result = calculator_.calculate_iit_annual_reconciliation(
                     annual_income=annual_income,
                     annual_expenses=annual_expenses,
@@ -95,10 +123,10 @@ def calculator(entity_id):
                 active_tab = "annual"
 
             else:
-                flash("Unknown calculation type.", "error")
+                flash("未知的计算类型", "error")
 
         except (TypeError, ValueError) as exc:
-            flash("Invalid input: " + str(exc), "error")
+            flash("输入错误: " + str(exc), "error")
 
     return render_template(
         "tax/calculator.html",
@@ -113,6 +141,7 @@ def calculator(entity_id):
 # ---------------------------------------------------------------------------
 @tax_bp.route("/calculate", methods=["POST"])
 @login_required
+@csrf_required
 def calculate():
     data = request.get_json(silent=True) or request.form
     calc_type = data.get("calc_type", "quarterly")
@@ -120,41 +149,42 @@ def calculate():
     try:
         entity_id = int(data.get("entity_id"))
     except (TypeError, ValueError):
-        return jsonify({"error": "entity_id is required and must be an integer."}), 400
+        return jsonify({"error": "entity_id为必填项且必须是整数"}), 400
 
     dm = _dm()
     entity = dm.get_entity(entity_id)
     if entity is None:
-        return jsonify({"error": "Entity not found."}), 404
+        return jsonify({"error": "企业不存在或无权限访问"}), 404
 
     calc = _calc()
 
     try:
         if calc_type == "quarterly":
-            quarterly_income = float(data.get("quarterly_income", 0))
+            quarterly_income = _validate_amount(data.get("quarterly_income", 0), "季度收入")
+            quarterly_expenses = _validate_amount(data.get("quarterly_expenses", 0), "季度费用")
             result = calc.calculate_all_quarterly(
                 quarterly_income=quarterly_income,
-                quarterly_expenses=0,
+                quarterly_expenses=quarterly_expenses,
             )
 
         elif calc_type == "stamp":
-            quarterly_income = float(data.get("quarterly_income", 0))
-            paid_capital = float(data.get("paid_capital", 0))
+            quarterly_income = _validate_amount(data.get("quarterly_income", 0), "季度收入")
+            paid_capital = _validate_amount(data.get("paid_capital", 0), "实收资本")
             result = calc.calculate_stamp_tax(
                 quarterly_income=quarterly_income,
                 paid_capital=paid_capital,
             )
 
         elif calc_type == "social":
-            monthly_base = float(data.get("monthly_base", 0))
+            monthly_base = _validate_amount(data.get("monthly_base", 0), "月缴费基数")
             result = calc.calculate_social_security(
                 monthly_base=monthly_base,
             )
 
         elif calc_type == "annual":
-            annual_income = float(data.get("annual_income", 0))
-            annual_expenses = float(data.get("annual_expenses", 0))
-            quarterly_prepaid = float(data.get("quarterly_prepaid", 0))
+            annual_income = _validate_amount(data.get("annual_income", 0), "年度收入")
+            annual_expenses = _validate_amount(data.get("annual_expenses", 0), "年度费用")
+            quarterly_prepaid = _validate_amount(data.get("quarterly_prepaid", 0), "季度预缴")
             result = calc.calculate_iit_annual_reconciliation(
                 annual_income=annual_income,
                 annual_expenses=annual_expenses,
@@ -162,10 +192,10 @@ def calculate():
             )
 
         else:
-            return jsonify({"error": "Unknown calc_type: " + str(calc_type)}), 400
+            return jsonify({"error": "未知的计算类型: " + str(calc_type)}), 400
 
     except (TypeError, ValueError) as exc:
-        return jsonify({"error": "Invalid parameter: " + str(exc)}), 400
+        return jsonify({"error": "参数错误: " + str(exc)}), 400
 
     return jsonify({
         "entity_id": entity_id,
@@ -201,17 +231,18 @@ def declaration_page():
 # ---------------------------------------------------------------------------
 @tax_bp.route("/declaration/<int:entity_id>/submit", methods=["POST"])
 @login_required
+@csrf_required
 def declaration_submit(entity_id):
     dm = _dm()
     entity = dm.get_entity(entity_id)
     if entity is None:
-        return jsonify({"error": "Entity not found."}), 404
+        return jsonify({"error": "企业不存在或无权限访问"}), 404
 
     data = request.get_json(silent=True) or request.form
     records = data.get("records", [])
 
     if not records:
-        return jsonify({"error": "No records supplied."}), 400
+        return jsonify({"error": "未提供记录"}), 400
 
     now = datetime.now()
     saved_ids = []
@@ -219,11 +250,11 @@ def declaration_submit(entity_id):
     for record in records:
         try:
             year = int(record.get("year", now.year))
-            quarter = int(record.get("quarter", (now.month - 1) // 3 + 1))
+            quarter = _validate_quarter(record.get("quarter", (now.month - 1) // 3 + 1))
             tax_type = record.get("tax_type", "")
-            taxable_income = float(record.get("taxable_income", 0))
-            tax_amount = float(record.get("tax_amount", 0))
-            tax_rate = float(record.get("tax_rate", 0))
+            taxable_income = _validate_amount(record.get("taxable_income", 0), "应税收入")
+            tax_amount = _validate_amount(record.get("tax_amount", 0), "税额")
+            tax_rate = _validate_amount(record.get("tax_rate", 0), "税率")
             notes = record.get("notes", "")
 
             record_id = dm.save_tax_record(
@@ -239,7 +270,9 @@ def declaration_submit(entity_id):
             saved_ids.append(record_id)
 
         except (TypeError, ValueError) as exc:
-            return jsonify({"error": "Invalid record: " + str(exc)}), 400
+            return jsonify({"error": "记录参数错误: " + str(exc)}), 400
+        except PermissionError as exc:
+            return jsonify({"error": str(exc)}), 403
 
     return jsonify({
         "entity_id": entity_id,

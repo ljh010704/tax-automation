@@ -24,6 +24,7 @@
 <div class="card">
     <h2>新增交易</h2>
     <form method="POST" action="{{ url_for('bookkeeping.entity_transactions', entity_id=entity.id) }}" class="form-grid">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-group"><label>日期</label><input type="date" name="trans_date" required value="{{ '%04d-%02d-01'|format(year, month) }}"></div>
         <div class="form-group"><label>类型</label><select name="trans_type" required><option value="income">收入</option><option value="expense">支出</option></select></div>
         <div class="form-group"><label>类别</label><input type="text" name="category" required placeholder="请输入类别"></div>
@@ -46,7 +47,8 @@
                 <td>{{ t.category }}</td>
                 <td>{{ "%.2f"|format(t.amount) }}</td>
                 <td>{{ t.description or '' }}</td>
-                <td><form method="POST" action="{{ url_for('bookkeeping.delete_transaction', entity_id=entity.id, trans_id=t.id) }}" class="inline" onsubmit="return confirm('确认删除？')"><button type="submit" class="btn btn-sm btn-danger">删除</button></form></td>
+                <td><form method="POST" action="{{ url_for('bookkeeping.delete_transaction', entity_id=entity.id, trans_id=t.id) }}" class="inline" onsubmit="return confirm('确认删除？')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="btn btn-sm btn-danger">删除</button></form></td>
             </tr>
         {% endfor %}
         </tbody>

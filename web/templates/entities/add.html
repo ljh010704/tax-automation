@@ -8,6 +8,7 @@
 
 <div class="card">
     <form method="POST" action="{{ url_for('entities.add_entity') }}" class="form-grid" id="addEntityForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-group full-width">
             <label>统一社会信用代码 *</label>
             <div class="input-with-btn">

@@ -9,6 +9,7 @@
 <div class="card">
     <h2>新增申报</h2>
     <form method="POST" action="{{ url_for('tax.save_declaration', entity_id=entity.id) }}" class="form-grid">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-group"><label>年度</label><input type="number" name="year" value="2026" required></div>
         <div class="form-group"><label>季度</label><select name="quarter">
             <option value="1">第一季度</option><option value="2">第二季度</option>

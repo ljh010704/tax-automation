@@ -6,6 +6,7 @@ __pycache__/
 .Python
 env/
 venv/
+.venv/
 .env
 
 # Database
@@ -16,6 +17,7 @@ data/browser_data/
 .vscode/
 .idea/
 *.swp
+*.sublime-*
 
 # OS
 .DS_Store
@@ -24,3 +26,13 @@ Thumbs.db
 # Project specific
 login_waiting.png
 search_result.png
+debug_*.png
+*.log
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local dev
+*.local

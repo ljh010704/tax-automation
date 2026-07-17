@@ -1,18 +1,24 @@
-"""企业信息管理模块"""
+"""企业管理模块"""
 
+import logging
 import threading
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from core.data_manager import DataManager
 from core.tax_calculator import TaxCalculator
 from core.business_query import BusinessQueryOffline
+from web.csrf import csrf_required
+
+logger = logging.getLogger(__name__)
 
 entities_bp = Blueprint("entities", __name__)
+
 
 def _dm():
     dm = DataManager()
     dm.set_current_user(current_user.id)
     return dm
+
 
 @entities_bp.route("/")
 @login_required
@@ -21,13 +27,15 @@ def list_entities():
     entities = dm.list_entities()
     return render_template("entities/list.html", entities=entities)
 
+
 @entities_bp.route("/api/lookup", methods=["POST"])
 @login_required
+@csrf_required
 def api_lookup():
     """通过统一社会信用代码查询企业信息"""
     data = request.get_json() or {}
     credit_code = (data.get("credit_code", "") or "").strip().upper()
-    
+
     if not BusinessQueryOffline.validate_credit_code(credit_code):
         return jsonify({"error": "统一社会信用代码格式不正确，应为18位数字大写字母"}), 400
 
@@ -42,29 +50,13 @@ def api_lookup():
             return jsonify({"success": True, "data": result})
         return jsonify({"error": "未查询到企业信息，请检查信用代码是否正确"}), 404
     except Exception as e:
-        return jsonify({"error": f"查询失败: {str(e)}"}), 500
+        logger.error("查询企业信息失败: %s", str(e))
+        return jsonify({"error": "查询失败，请稍后重试"}), 500
 
-
-
-@entities_bp.route("/api/debug", methods=["POST"])
-@login_required
-def api_debug():
-    """调试查询：返回详细步骤信息"""
-    data = request.get_json() or {}
-    credit_code = (data.get("credit_code", "") or "").strip().upper()
-
-    if not BusinessQueryOffline.validate_credit_code(credit_code):
-        return jsonify({"error": "统一社会信用代码格式不正确"}), 400
-
-    try:
-        from core.business_query import debug_query
-        steps = debug_query(credit_code)
-        return jsonify({"success": True, "steps": steps})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 @entities_bp.route("/add", methods=["GET", "POST"])
 @login_required
+@csrf_required
 def add_entity():
     if request.method == "POST":
         credit_code = request.form.get("credit_code", "").strip().upper()
@@ -95,16 +87,19 @@ def add_entity():
             flash("企业信息添加成功", "success")
             return redirect(url_for("entities.list_entities"))
         except Exception as e:
+            logger.error("添加企业失败: %s", str(e))
             if "UNIQUE" in str(e):
-                flash("企业已经存在", "error")
+                flash("企业已存在", "error")
             else:
-                flash("添加失败: " + str(e), "error")
+                flash("添加失败，请稍后重试", "error")
             return redirect(url_for("entities.add_entity"))
 
     return render_template("entities/add.html")
 
+
 @entities_bp.route("/<int:entity_id>/edit", methods=["GET", "POST"])
 @login_required
+@csrf_required
 def edit_entity(entity_id):
     dm = _dm()
     entity = dm.get_entity(entity_id)
@@ -131,16 +126,20 @@ def edit_entity(entity_id):
 
     return render_template("entities/edit.html", entity=entity)
 
+
 @entities_bp.route("/<int:entity_id>/delete", methods=["POST"])
 @login_required
+@csrf_required
 def delete_entity(entity_id):
     dm = _dm()
     dm.delete_entity(entity_id)
     flash("已删除", "success")
     return redirect(url_for("entities.list_entities"))
 
+
 @entities_bp.route("/<int:entity_id>/query", methods=["POST"])
 @login_required
+@csrf_required
 def query_entity(entity_id):
     try:
         from core.business_query import query_business_info_sync
@@ -161,6 +160,7 @@ def query_entity(entity_id):
         if result:
             dm.update_entity(entity_id, result)
             return jsonify({"success": True, "data": result})
-        return jsonify({"error": "查询企业信息失败请稍后重新尝试"}), 500
+        return jsonify({"error": "查询企业信息失败请稍后重试"}), 500
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error("查询企业信息失败: %s", str(e))
+        return jsonify({"error": "查询失败，请稍后重试"}), 500

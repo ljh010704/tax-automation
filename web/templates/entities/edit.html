@@ -7,6 +7,7 @@
 
 <div class="card">
     <form method="POST" action="{{ url_for('entities.edit_entity', entity_id=entity.id) }}" class="form-grid">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-group">
             <label>统一社会信用代码</label>
             <input type="text" name="credit_code" value="{{ entity.credit_code }}" readonly>

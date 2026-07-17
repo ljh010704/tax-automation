@@ -9,6 +9,7 @@
         <h1>创建账户</h1>
         <p class="auth-subtitle">注册以开始使用税务自动化系统</p>
         <form method="POST" action="{{ url_for('auth.register') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group">
                 <label>用户名</label>
                 <input type="text" name="username" required autofocus placeholder="请输入用户名">

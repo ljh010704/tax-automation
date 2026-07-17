@@ -34,6 +34,7 @@
                         <a href="{{ url_for('entities.edit_entity', entity_id=e.id) }}" class="btn btn-sm">编辑</a>
                         <a href="{{ url_for('bookkeeping.entity_transactions', entity_id=e.id) }}" class="btn btn-sm">账务</a>
                         <form method="POST" action="{{ url_for('entities.query_entity', entity_id=e.id) }}" class="inline" onsubmit="return confirm('确认查询企业信息？')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm btn-query">查询</button>
                         </form>
                         <form method="POST" action="{{ url_for('entities.delete_entity', entity_id=e.id) }}" class="inline" onsubmit="return confirm('确认删除？')">

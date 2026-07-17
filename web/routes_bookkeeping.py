@@ -1,10 +1,13 @@
 """Bookkeeping routes for tax automation web app."""
 
+import logging
 from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from core.data_manager import DataManager
+from web.csrf import csrf_required
 
+logger = logging.getLogger(__name__)
 
 bookkeeping_bp = Blueprint("bookkeeping", __name__)
 
@@ -13,6 +16,19 @@ def _create_dm():
     dm = DataManager()
     dm.set_current_user(current_user.id)
     return dm
+
+
+def _validate_amount(value, field_name="金额"):
+    """Validate a monetary amount."""
+    try:
+        val = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"{field_name}必须是有效数字")
+    if val != val or val == float('inf') or val == float('-inf'):
+        raise ValueError(f"{field_name}必须是有限数字")
+    if val < 0:
+        raise ValueError(f"{field_name}不能为负数")
+    return val
 
 
 @bookkeeping_bp.route("/")
@@ -25,11 +41,12 @@ def index():
 
 @bookkeeping_bp.route("/<int:entity_id>", methods=["GET", "POST"])
 @login_required
+@csrf_required
 def entity_transactions(entity_id):
     dm = _create_dm()
     entity = dm.get_entity(entity_id)
     if not entity:
-        flash("Entity not found.", "error")
+        flash("企业不存在或无权限访问", "error")
         return redirect(url_for("bookkeeping.index"))
 
     if request.method == "POST":
@@ -40,21 +57,21 @@ def entity_transactions(entity_id):
         description = request.form.get("description", "").strip()
 
         if not trans_date_raw:
-            flash("Transaction date is required.", "error")
+            flash("交易日期不能为空", "error")
             return redirect(url_for("bookkeeping.entity_transactions", entity_id=entity_id))
 
         if trans_type not in ("income", "expense"):
-            flash("Transaction type must be income or expense.", "error")
+            flash("交易类型必须是收入或支出", "error")
             return redirect(url_for("bookkeeping.entity_transactions", entity_id=entity_id))
 
         if not category:
-            flash("Category is required.", "error")
+            flash("分类不能为空", "error")
             return redirect(url_for("bookkeeping.entity_transactions", entity_id=entity_id))
 
         try:
-            amount = float(amount_raw)
-        except (TypeError, ValueError):
-            flash("Amount must be a valid number.", "error")
+            amount = _validate_amount(amount_raw)
+        except ValueError as e:
+            flash(str(e), "error")
             return redirect(url_for("bookkeeping.entity_transactions", entity_id=entity_id))
 
         dm.add_transaction(
@@ -65,7 +82,7 @@ def entity_transactions(entity_id):
             amount,
             description,
         )
-        flash("Transaction added successfully.", "success")
+        flash("交易添加成功", "success")
         return redirect(url_for("bookkeeping.entity_transactions", entity_id=entity_id))
 
     year = request.args.get("year", type=int)
@@ -96,11 +113,12 @@ def entity_transactions(entity_id):
 
 @bookkeeping_bp.route("/<int:entity_id>/add", methods=["POST"])
 @login_required
+@csrf_required
 def add_transaction(entity_id):
     dm = _create_dm()
     entity = dm.get_entity(entity_id)
     if not entity:
-        flash("Entity not found.", "error")
+        flash("企业不存在或无权限访问", "error")
         return redirect(url_for("bookkeeping.index"))
 
     trans_date_raw = request.form.get("trans_date", "").strip()
@@ -110,21 +128,21 @@ def add_transaction(entity_id):
     description = request.form.get("description", "").strip()
 
     if not trans_date_raw:
-        flash("Transaction date is required.", "error")
+        flash("交易日期不能为空", "error")
         return redirect(url_for("bookkeeping.entity_transactions", entity_id=entity_id))
 
     if trans_type not in ("income", "expense"):
-        flash("Transaction type must be income or expense.", "error")
+        flash("交易类型必须是收入或支出", "error")
         return redirect(url_for("bookkeeping.entity_transactions", entity_id=entity_id))
 
     if not category:
-        flash("Category is required.", "error")
+        flash("分类不能为空", "error")
         return redirect(url_for("bookkeeping.entity_transactions", entity_id=entity_id))
 
     try:
-        amount = float(amount_raw)
-    except (TypeError, ValueError):
-        flash("Amount must be a valid number.", "error")
+        amount = _validate_amount(amount_raw)
+    except ValueError as e:
+        flash(str(e), "error")
         return redirect(url_for("bookkeeping.entity_transactions", entity_id=entity_id))
 
     dm.add_transaction(
@@ -135,16 +153,20 @@ def add_transaction(entity_id):
         amount,
         description,
     )
-    flash("Transaction added successfully.", "success")
+    flash("交易添加成功", "success")
     return redirect(url_for("bookkeeping.entity_transactions", entity_id=entity_id))
 
 
 @bookkeeping_bp.route("/<int:entity_id>/delete/<int:trans_id>", methods=["POST"])
 @login_required
+@csrf_required
 def delete_transaction(entity_id, trans_id):
     dm = _create_dm()
-    dm.delete_transaction(trans_id)
-    flash("Transaction deleted.", "success")
+    try:
+        dm.delete_transaction(trans_id)
+        flash("交易已删除", "success")
+    except PermissionError as e:
+        flash(str(e), "error")
     return redirect(url_for("bookkeeping.entity_transactions", entity_id=entity_id))
 
 
@@ -154,7 +176,7 @@ def reports(entity_id):
     dm = _create_dm()
     entity = dm.get_entity(entity_id)
     if not entity:
-        flash("Entity not found.", "error")
+        flash("企业不存在或无权限访问", "error")
         return redirect(url_for("bookkeeping.index"))
 
     year = request.args.get("year", type=int)

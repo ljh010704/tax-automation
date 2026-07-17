@@ -2,11 +2,11 @@
 
 import sqlite3
 import os
-import hashlib
-import secrets
 from functools import wraps
-from flask import Flask, Blueprint, render_template, redirect, url_for, request, flash, session, g
+from flask import Blueprint, render_template, redirect, url_for, request, flash, session, g
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from web.csrf import csrf_required
 
 
 # ======== 用户模型 ========
@@ -24,13 +24,15 @@ class User(UserMixin):
 
 # ======== 数据库操作 ========
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "web.db")
+DB_PATH = os.environ.get('WEB_DATABASE_PATH', os.path.join(os.path.dirname(__file__), "..", "data", "web.db"))
+
 
 def get_db():
     if "db" not in g:
         g.db = sqlite3.connect(DB_PATH)
         g.db.row_factory = sqlite3.Row
     return g.db
+
 
 def init_auth_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
@@ -40,7 +42,6 @@ def init_auth_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
-            salt TEXT NOT NULL,
             role TEXT DEFAULT 'user',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
@@ -48,17 +49,15 @@ def init_auth_db():
     conn.commit()
     conn.close()
 
-def _hash_password(password, salt):
-    return hashlib.sha256((salt + password).encode()).hexdigest()
 
 def create_user(username, password, role="user"):
-    salt = secrets.token_hex(16)
-    password_hash = _hash_password(password, salt)
+    """Create a new user with Werkzeug password hashing (PBKDF2-SHA256)."""
+    password_hash = generate_password_hash(password, method='pbkdf2:sha256')
     conn = sqlite3.connect(DB_PATH)
     try:
         conn.execute(
-            "INSERT INTO users (username, password_hash, salt, role) VALUES (?, ?, ?, ?)",
-            (username, password_hash, salt, role)
+            "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
+            (username, password_hash, role)
         )
         conn.commit()
         return True
@@ -67,17 +66,50 @@ def create_user(username, password, role="user"):
     finally:
         conn.close()
 
+
 def verify_user(username, password):
+    """Verify user credentials. Supports migration from old SHA-256 hashes."""
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     row = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
     conn.close()
     if row is None:
         return None
-    password_hash = _hash_password(password, row["salt"])
-    if password_hash == row["password_hash"]:
-        return User(row["id"], row["username"], row["role"])
+
+    stored_hash = row["password_hash"]
+
+    # Modern Werkzeug hash (pbkdf2:sha256$...)
+    if stored_hash.startswith('pbkdf2:'):
+        if check_password_hash(stored_hash, password):
+            return User(row["id"], row["username"], row["role"])
+        return None
+
+    # Legacy SHA-256 hash (64 hex chars) - verify and upgrade
+    if len(stored_hash) == 64 and all(c in '0123456789abcdef' for c in stored_hash.lower()):
+        import hashlib
+        # Check if there was a salt column in old schema
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        try:
+            salt_row = conn.execute("SELECT salt FROM users WHERE id = ?", (row["id"],)).fetchone()
+            salt = salt_row["salt"] if salt_row and salt_row["salt"] else ''
+        except (sqlite3.OperationalError, TypeError):
+            salt = ''
+        conn.close()
+
+        legacy_hash = hashlib.sha256((salt + password).encode()).hexdigest()
+        if legacy_hash == stored_hash:
+            # Upgrade to modern hashing on successful login
+            new_hash = generate_password_hash(password, method='pbkdf2:sha256')
+            conn = sqlite3.connect(DB_PATH)
+            conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, row["id"]))
+            conn.commit()
+            conn.close()
+            return User(row["id"], row["username"], row["role"])
+        return None
+
     return None
+
 
 def get_user_by_id(user_id):
     conn = sqlite3.connect(DB_PATH)
@@ -87,6 +119,7 @@ def get_user_by_id(user_id):
     if row:
         return User(row["id"], row["username"], row["role"])
     return None
+
 
 def get_all_users():
     conn = sqlite3.connect(DB_PATH)
@@ -109,6 +142,7 @@ def load_user(user_id):
 # ======== 路由 ========
 
 @auth_bp.route("/login", methods=["GET", "POST"])
+@csrf_required
 def login():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
@@ -120,7 +154,9 @@ def login():
         flash("用户名或密码错误", "error")
     return render_template("login.html")
 
+
 @auth_bp.route("/register", methods=["GET", "POST"])
+@csrf_required
 def register():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
@@ -139,11 +175,13 @@ def register():
             flash("用户名已存在", "error")
     return render_template("register.html")
 
+
 @auth_bp.route("/logout")
 @login_required
 def logout():
     logout_user()
     return redirect(url_for("auth.login"))
+
 
 def admin_required(f):
     @wraps(f)

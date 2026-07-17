@@ -17,7 +17,7 @@ class DataManager:
 
     def __init__(self, db_path: str = None):
         if db_path is None:
-            db_path = os.path.join(os.path.dirname(__file__), "..", "data", "entities.db")
+            db_path = os.environ.get('DATABASE_PATH', os.path.join(os.path.dirname(__file__), "..", "data", "entities.db"))
         self.db_path = db_path
         self._current_user_id = None
         self._init_db()
@@ -191,33 +191,60 @@ class DataManager:
         return dict(row) if row else None
 
     def update_entity(self, entity_id: int, entity: Dict):
-        """更新企业信息"""
+        """更新企业信息（限制当前用户范围）"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        cursor.execute(
-            """
-            UPDATE entities SET
-                name=?, credit_code=?, entity_type=?, taxpayer_type=?,
-                legal_representative=?, business_status=?, taxpayer_status=?,
-                province=?, city=?, tax_authority=?, login_url=?,
-                updated_at=CURRENT_TIMESTAMP
-            WHERE id=?
-        """,
-            (
-                entity["name"],
-                entity["credit_code"],
-                entity["entity_type"],
-                entity.get("taxpayer_type", "small_scale"),
-                entity.get("legal_representative"),
-                entity.get("business_status", "正常"),
-                entity.get("taxpayer_status", "正常"),
-                entity.get("province"),
-                entity.get("city"),
-                entity.get("tax_authority"),
-                entity.get("login_url"),
-                entity_id,
-            ),
-        )
+        if self._current_user_id is not None:
+            cursor.execute(
+                """
+                UPDATE entities SET
+                    name=?, credit_code=?, entity_type=?, taxpayer_type=?,
+                    legal_representative=?, business_status=?, taxpayer_status=?,
+                    province=?, city=?, tax_authority=?, login_url=?,
+                    updated_at=CURRENT_TIMESTAMP
+                WHERE id=? AND user_id=?
+            """,
+                (
+                    entity["name"],
+                    entity["credit_code"],
+                    entity["entity_type"],
+                    entity.get("taxpayer_type", "small_scale"),
+                    entity.get("legal_representative"),
+                    entity.get("business_status", "正常"),
+                    entity.get("taxpayer_status", "正常"),
+                    entity.get("province"),
+                    entity.get("city"),
+                    entity.get("tax_authority"),
+                    entity.get("login_url"),
+                    entity_id,
+                    self._current_user_id,
+                ),
+            )
+        else:
+            cursor.execute(
+                """
+                UPDATE entities SET
+                    name=?, credit_code=?, entity_type=?, taxpayer_type=?,
+                    legal_representative=?, business_status=?, taxpayer_status=?,
+                    province=?, city=?, tax_authority=?, login_url=?,
+                    updated_at=CURRENT_TIMESTAMP
+                WHERE id=?
+            """,
+                (
+                    entity["name"],
+                    entity["credit_code"],
+                    entity["entity_type"],
+                    entity.get("taxpayer_type", "small_scale"),
+                    entity.get("legal_representative"),
+                    entity.get("business_status", "正常"),
+                    entity.get("taxpayer_status", "正常"),
+                    entity.get("province"),
+                    entity.get("city"),
+                    entity.get("tax_authority"),
+                    entity.get("login_url"),
+                    entity_id,
+                ),
+            )
         conn.commit()
         conn.close()
 
@@ -311,9 +338,19 @@ class DataManager:
     def save_tax_record(self, entity_id: int, year: int, quarter: int,
                         tax_type: str, taxable_income: float, tax_amount: float,
                         tax_rate: float, notes: str = None) -> int:
-        """保存/更新税务记录"""
+        """保存/更新税务记录（验证实体归属）"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
+
+        # Verify entity belongs to current user
+        if self._current_user_id is not None:
+            cursor.execute(
+                "SELECT id FROM entities WHERE id=? AND user_id=?",
+                (entity_id, self._current_user_id)
+            )
+            if not cursor.fetchone():
+                conn.close()
+                raise PermissionError("无权为此企业保存税务记录")
 
         cursor.execute(
             """
@@ -374,9 +411,19 @@ class DataManager:
         return records
 
     def mark_submitted(self, record_id: int):
-        """标记为已申报"""
+        """标记为已申报（验证实体归属）"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
+        if self._current_user_id is not None:
+            cursor.execute(
+                """SELECT tr.id FROM tax_records tr
+                   JOIN entities e ON tr.entity_id = e.id
+                   WHERE tr.id = ? AND e.user_id = ?""",
+                (record_id, self._current_user_id)
+            )
+            if not cursor.fetchone():
+                conn.close()
+                raise PermissionError("无权操作此税务记录")
         cursor.execute(
             """
             UPDATE tax_records
@@ -406,10 +453,23 @@ class DataManager:
         return trans_id
 
     def delete_transaction(self, trans_id: int):
-        """删除交易记录"""
+        """删除交易记录（验证实体归属）"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM transactions WHERE id = ?", (trans_id,))
+        if self._current_user_id is not None:
+            # Verify the transaction belongs to an entity owned by current user
+            cursor.execute(
+                """SELECT t.id FROM transactions t
+                   JOIN entities e ON t.entity_id = e.id
+                   WHERE t.id = ? AND e.user_id = ?""",
+                (trans_id, self._current_user_id)
+            )
+            if not cursor.fetchone():
+                conn.close()
+                raise PermissionError("无权删除此交易记录")
+            cursor.execute("DELETE FROM transactions WHERE id = ?", (trans_id,))
+        else:
+            cursor.execute("DELETE FROM transactions WHERE id = ?", (trans_id,))
         conn.commit()
         conn.close()
 
