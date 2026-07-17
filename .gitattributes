@@ -1,0 +1,29 @@
+# Auto detect text files and perform LF normalization
+* text=auto eol=lf
+
+# Python files
+*.py text diff=python
+
+# HTML templates
+*.html text diff=html
+
+# CSS
+*.css text
+
+# JS
+*.js text
+
+# JSON
+*.json text
+
+# Markdown
+*.md text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
