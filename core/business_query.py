@@ -76,32 +76,41 @@ class BusinessQuery:
         if not headless:
             launch_args.append("--start-maximized")
 
-        if chrome_path:
-            print(f"浣跨敤绯荤粺 Chrome: {chrome_path} (headless={headless})")
-            self.context = await self.playwright.chromium.launch_persistent_context(
-                self.USER_DATA_DIR,
-                headless=headless,
-                executable_path=chrome_path,
-                viewport={"width": 1280, "height": 800},
-                args=launch_args,
-            )
-        else:
-            print("鏈壘鍒扮郴缁榎Chrome锛屼娇鐢?Playwright 鑷甫娴忚鍣")
+        try:
+            if chrome_path:
+                print(f"浣跨敤绯荤粺 Chrome: {chrome_path} (headless={headless})")
+                self.browser = await self.playwright.chromium.launch(
+                    headless=headless,
+                    executable_path=chrome_path,
+                    args=launch_args,
+                )
+            else:
+                print("鏈壘鍒扮郴蘎Chrome锛屼娇鐢?Playwright 鑷甫娴忚鍣")
 
-            self.context = await self.playwright.chromium.launch_persistent_context(
-                self.USER_DATA_DIR,
-                headless=headless,
+                self.browser = await self.playwright.chromium.launch(
+                    headless=headless,
+                    args=launch_args,
+                )
+
+            self.context = await self.browser.new_context(
                 viewport={"width": 1280, "height": 800},
-                args=launch_args,
+                user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             )
+            self.page = await self.context.new_page()
+            await self.page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined});")
+        except Exception as e:
+            print(f"鍚姩娴忚鍣ㄥけ璐? {e}")
+            raise
+
 
     async def stop(self):
-        """关闭浏览器（登录状态会自动保存）"""
+        """关闭浏览器"""
         if self.context:
             await self.context.close()
+        if self.browser:
+            await self.browser.close()
         if self.playwright:
             await self.playwright.stop()
-
     async def query(self, credit_code: str) -> Optional[Dict]:
         """通过天眼查查询企业信息"""
         result = {
