@@ -29,59 +29,71 @@ class BusinessQuery:
         self.context = None
         self.page = None
         self.playwright = None
+        self.headless = False
 
     async def start(self, save_login: bool = True):
-        """启动浏览器"""
+        """鍚姩娴忚鍣?"""
         from playwright.async_api import async_playwright
 
         self.playwright = await async_playwright().start()
 
-        chrome_paths = [
-            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-            os.path.expanduser(r"~\AppData\Local\Google\Chrome\Application\chrome.exe"),
-        ]
+        # Detect if running on server (no display)
+        import platform
+        is_linux = platform.system() == "Linux"
+        headless = is_linux or os.environ.get("PLAYWRIGHT_HEADLESS", "0") == "1"
+        self.headless = headless
+
+        # Chrome paths for different OS
+        chrome_paths = []
+        if platform.system() == "Windows":
+            chrome_paths = [
+                r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+                os.path.expanduser(r"~\AppData\Local\Google\Chrome\Application\chrome.exe"),
+            ]
+        elif platform.system() == "Linux":
+            chrome_paths = [
+                "/usr/bin/google-chrome",
+                "/usr/bin/chromium-browser",
+                "/usr/bin/chromium",
+                "/snap/bin/chromium",
+            ]
 
         chrome_path = None
-        for path in chrome_paths:
-            if os.path.exists(path):
-                chrome_path = path
+        for p in chrome_paths:
+            if os.path.exists(p):
+                chrome_path = p
                 break
 
         os.makedirs(self.USER_DATA_DIR, exist_ok=True)
 
         launch_args = [
-            "--start-maximized",
             "--disable-blink-features=AutomationControlled",
             "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
         ]
+        if not headless:
+            launch_args.append("--start-maximized")
 
         if chrome_path:
-            print(f"使用系统 Chrome: {chrome_path}")
+            print(f"浣跨敤绯荤粺 Chrome: {chrome_path} (headless={headless})")
             self.context = await self.playwright.chromium.launch_persistent_context(
                 self.USER_DATA_DIR,
-                headless=False,
+                headless=headless,
                 executable_path=chrome_path,
                 viewport={"width": 1280, "height": 800},
                 args=launch_args,
             )
         else:
-            print("未找到系统 Chrome，使用 Playwright 自带浏览器")
+            print("鏈壘鍒扮郴缁榎Chrome锛屼娇鐢?Playwright 鑷甫娴忚鍣")
+
             self.context = await self.playwright.chromium.launch_persistent_context(
                 self.USER_DATA_DIR,
-                headless=False,
+                headless=headless,
                 viewport={"width": 1280, "height": 800},
                 args=launch_args,
             )
-
-        if self.context.pages:
-            self.page = self.context.pages[0]
-        else:
-            self.page = await self.context.new_page()
-
-        await self.page.add_init_script("""
-            Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-        """)
 
     async def stop(self):
         """关闭浏览器（登录状态会自动保存）"""
@@ -117,6 +129,8 @@ class BusinessQuery:
 
             # 仅通过 URL 路径判断是否在登录页
             if _is_login_page(current_url):
+                if self.headless:
+                    return None  # Headless mode cannot login
                 print("\n需要登录天眼查，请在浏览器中完成登录...")
                 await self.page.screenshot(path=os.path.join(os.path.dirname(__file__), "..", "login_waiting.png"))
 
