@@ -166,6 +166,8 @@ async function lookupEnterprise() {
             }
 
             showMsg('查询成功！已自动填充企业信息', 'success');
+        } else if (data.playwright_missing) {
+            showMsg(data.error + ' 您可以直接在下方表单中手动填写企业信息。', 'warning');
         } else {
             showMsg(data.error || '未查询到企业信息', 'error');
         }

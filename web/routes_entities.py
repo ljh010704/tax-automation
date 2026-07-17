@@ -33,6 +33,10 @@ def api_lookup():
 
     try:
         from core.business_query import query_business_info_sync
+    except ImportError:
+        return jsonify({"error": "服务器未安装 playwright，无法自动查询。请手动填写企业信息。", "playwright_missing": True}), 503
+
+    try:
         result = query_business_info_sync(credit_code)
         if result:
             return jsonify({"success": True, "data": result})
@@ -119,7 +123,10 @@ def delete_entity(entity_id):
 @entities_bp.route("/<int:entity_id>/query", methods=["POST"])
 @login_required
 def query_entity(entity_id):
-    from core.business_query import query_business_info_sync
+    try:
+        from core.business_query import query_business_info_sync
+    except ImportError:
+        return jsonify({"error": "服务器未安装 playwright，无法自动查询。请手动填写企业信息。", "playwright_missing": True}), 503
 
     dm = _dm()
     entity = dm.get_entity(entity_id)
