@@ -80,6 +80,7 @@
 
 {% block scripts %}
 <script>
+const CSRF_TOKEN = '{{ csrf_token() }}';
 const creditInput = document.getElementById('credit_code');
 const btnLookup = document.getElementById('btnLookup');
 const lookupText = document.getElementById('lookupText');
@@ -135,13 +136,16 @@ async function lookupEnterprise() {
     showMsg('正在查询企业信息，请稍候...', 'info');
 
     try {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         const resp = await fetch('{{ url_for("entities.api_lookup") }}', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken},
+            headers: {'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN},
             body: JSON.stringify({credit_code: code})
         });
-
+        if (!resp.ok) {
+            showMsg('查询请求失败 (HTTP ' + resp.status + ')', 'error');
+            setLoading(false);
+            return;
+        }
         const data = await resp.json();
 
         if (data.success && data.data) {
