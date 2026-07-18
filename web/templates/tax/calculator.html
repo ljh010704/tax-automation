@@ -17,6 +17,7 @@
     <!-- 增值税 -->
     <div id="tab-quarterly" class="tab-content active">
         <form id="form-quarterly" class="tax-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>季度收入</label><input type="number" name="quarterly_income" step="0.01" required></div>
             <div class="form-group"><label>季度费用</label><input type="number" name="quarterly_expenses" step="0.01" value="0"></div>
             <div class="form-group"><label>纳税人类型</label><select name="taxpayer_type"><option value="small_scale">小规模纳税人</option><option value="general">一般纳税人</option></select></div>
@@ -28,6 +29,7 @@
     <!-- 印花税 -->
     <div id="tab-stamp" class="tab-content">
         <form id="form-stamp" class="tax-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>季度收入</label><input type="number" name="quarterly_income" step="0.01" required></div>
             <div class="form-group"><label>实收资本</label><input type="number" name="paid_capital" step="0.01" value="0"></div>
             <button type="submit" class="btn btn-primary">计算</button>
@@ -38,6 +40,7 @@
     <!-- 社保 -->
     <div id="tab-social" class="tab-content">
         <form id="form-social" class="tax-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>月缴费基数</label><input type="number" name="monthly_base" step="0.01" required></div>
             <button type="submit" class="btn btn-primary">计算</button>
         </form>
@@ -47,6 +50,7 @@
     <!-- 企业所得税 -->
     <div id="tab-annual" class="tab-content">
         <form id="form-annual" class="tax-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group"><label>年收入</label><input type="number" name="annual_income" step="0.01" required></div>
             <div class="form-group"><label>年支出</label><input type="number" name="annual_expenses" step="0.01" value="0"></div>
             <div class="form-group"><label>季度预缴</label><input type="number" name="quarterly_prepaid" step="0.01" value="0"></div>

@@ -198,7 +198,7 @@ class DataManager:
             cursor.execute(
                 """
                 UPDATE entities SET
-                    name=?, credit_code=?, entity_type=?, taxpayer_type=?,
+                    name=?, entity_type=?, taxpayer_type=?,
                     legal_representative=?, business_status=?, taxpayer_status=?,
                     province=?, city=?, tax_authority=?, login_url=?,
                     updated_at=CURRENT_TIMESTAMP
@@ -206,7 +206,6 @@ class DataManager:
             """,
                 (
                     entity["name"],
-                    entity["credit_code"],
                     entity["entity_type"],
                     entity.get("taxpayer_type", "small_scale"),
                     entity.get("legal_representative"),
@@ -224,7 +223,7 @@ class DataManager:
             cursor.execute(
                 """
                 UPDATE entities SET
-                    name=?, credit_code=?, entity_type=?, taxpayer_type=?,
+                    name=?, entity_type=?, taxpayer_type=?,
                     legal_representative=?, business_status=?, taxpayer_status=?,
                     province=?, city=?, tax_authority=?, login_url=?,
                     updated_at=CURRENT_TIMESTAMP
@@ -232,7 +231,6 @@ class DataManager:
             """,
                 (
                     entity["name"],
-                    entity["credit_code"],
                     entity["entity_type"],
                     entity.get("taxpayer_type", "small_scale"),
                     entity.get("legal_representative"),
