@@ -48,7 +48,7 @@ def api_lookup():
         result = query_business_info_sync(credit_code)
         if result:
             return jsonify({"success": True, "data": result})
-        return jsonify({"error": "未查询到企业信息，请检查信用代码是否正确"}), 404
+        return jsonify({"error": "未查询到企业信息，请检查信用代码是否正确", "partial": True}), 200
     except Exception as e:
         logger.error("查询企业信息失败: %s", str(e))
         return jsonify({"error": "查询失败，请稍后重试"}), 500

@@ -601,7 +601,7 @@ def query_business_info_sync(credit_code: str, callback=None):
         finally:
             await query.stop()
 
-    asyncio.run(_run_query())
+    return asyncio.run(_run_query())
 
 
 class BusinessQueryOffline:
