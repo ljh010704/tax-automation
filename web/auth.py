@@ -144,6 +144,8 @@ def load_user(user_id):
 @auth_bp.route("/login", methods=["GET", "POST"])
 @csrf_required
 def login():
+    if current_user.is_authenticated:
+        return redirect(url_for("main.dashboard"))
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
