@@ -1,7 +1,7 @@
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
+*.class
 *.so
 .Python
 env/
@@ -23,11 +23,16 @@ data/browser_data/
 .DS_Store
 Thumbs.db
 
-# Project specific
-login_waiting.png
-search_result.png
-debug_*.png
+# Debug artifacts
+*.png
 *.log
+_*.py
+_*.json
+_*.txt
+test_*.py
+fix_*.py
+check_*.py
+parse_*.py
 
 # Tests
 .pytest_cache/
